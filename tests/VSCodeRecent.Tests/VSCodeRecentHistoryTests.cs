@@ -143,6 +143,38 @@ public class VSCodeRecentHistoryTests
         Assert.Equal([@"C:\a\a", @"C:\a\b"], sorted.Select(i => i.Path));
     }
 
+    /// <summary>列表页与 Fallback 内联搜索共用这一套匹配：标题或路径子串命中。</summary>
+    [Fact]
+    public void Search_MatchesTitleOrPath()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Item(@"\\wsl.localhost\debian\root\git\misc", ItemKind.Folder, 0),
+            Item(@"\\wsl.localhost\debian\root\git\VSCodeRecent", ItemKind.Folder, 1),
+        ];
+
+        Assert.Equal(
+            [@"\\wsl.localhost\debian\root\git\misc"],
+            VSCodeRecentHistory.Search(items, "misc", includeFiles: false).Select(i => i.Path));
+        Assert.Equal(
+            [@"\\wsl.localhost\debian\root\git\VSCodeRecent"],
+            VSCodeRecentHistory.Search(items, "vscoderecent", includeFiles: false).Select(i => i.Path));
+    }
+
+    /// <summary>空查询返回全部（受「显示文件」过滤），不清空列表。</summary>
+    [Fact]
+    public void Search_EmptyQueryReturnsAllFiltered()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Item(@"C:\a\one.cs", ItemKind.File, 0),
+            Item(@"C:\a\proj", ItemKind.Folder, 1),
+        ];
+
+        Assert.Single(VSCodeRecentHistory.Search(items, null, includeFiles: false));
+        Assert.Equal(2, VSCodeRecentHistory.Search(items, "  ", includeFiles: true).Count);
+    }
+
     [Fact]
     public void IsProject_ExcludesOnlyFiles()
     {

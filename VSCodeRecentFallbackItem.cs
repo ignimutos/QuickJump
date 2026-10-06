@@ -58,8 +58,16 @@ internal sealed partial class VSCodeRecentFallbackItem : FallbackCommandItem
             return;
         }
 
+        // 非阻塞：首次读取还没完成时不搜索，否则每敲一个字都会在渲染线程上同步扫描。
+        // 后台读完会经 RaiseItemsChanged 让宿主重来。
+        if (_history.TryGetCached() is not { } snapshot)
+        {
+            Command = new NoOpCommand();
+            return;
+        }
+
         // 设置可能在面板里刚被改过，每次按当前值过滤
-        var matched = _history.Search(query, _settings.ShowFiles.Value);
+        var matched = VSCodeRecentHistory.Search(snapshot.Items, query, _settings.ShowFiles.Value);
         if (matched.Count == 0)
         {
             Command = new NoOpCommand();

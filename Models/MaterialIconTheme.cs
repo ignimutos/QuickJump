@@ -22,9 +22,23 @@ internal sealed class MaterialIconTheme
     private const string ResourceName = "VSCodeRecent.Assets.MaterialIcons.material-icons.json";
 
     private static MaterialIconTheme? _shared;
+    private static readonly object SharedGate = new();
 
-    /// <summary>加载失败也不会抛：退回全部默认图标，列表还能用。</summary>
-    public static MaterialIconTheme Shared => _shared ??= Load();
+    /// <summary>
+    /// 加载失败也不会抛：退回全部默认图标，列表还能用。
+    /// 加锁与另两个单例（<see cref="VSCodeRecentHistory"/>/<see cref="VSCodeInstall"/>）一致：
+    /// 后台预热与页面的 <c>GetItems</c> 会并发首次访问，无锁的 <c>??=</c> 会重复加载。
+    /// </summary>
+    public static MaterialIconTheme Shared
+    {
+        get
+        {
+            lock (SharedGate)
+            {
+                return _shared ??= Load();
+            }
+        }
+    }
 
     private readonly Dictionary<string, string> _fileNames;
     private readonly Dictionary<string, string> _fileExtensions;

@@ -35,6 +35,18 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
         // 改设置后列表要重建，否则开关不生效（Item 列表刷新靠 ItemsChanged）。
         // 本页面由提供者构造一次并长期存活，所以不需要退订。
         settings.Settings.SettingsChanged += (_, _) => RaiseItemsChanged();
+
+        // 构造发生在扩展进程启动时，早于用户打开面板 —— 在这里就把那次最慢的读取
+        // 放到后台跑，等用户真进页面时通常已经命中缓存，首屏不再空白。
+        IsLoading = true;
+        _history.RefreshInBackground(OnReadCompleted);
+    }
+
+    /// <summary>后台读完（或已有刷新结束时）：收起加载态并刷新列表。</summary>
+    private void OnReadCompleted()
+    {
+        IsLoading = false;
+        RaiseItemsChanged();
     }
 
     /// <summary>设置里的「显示文件」当前值。</summary>
@@ -64,16 +76,32 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
 
     public override IListItem[] GetItems()
     {
-        var (all, succeeded, failure) = _history.Read();
+        // 非阻塞：冷启动时后台刷新可能还没完成，先给占位；读完由 OnReadCompleted
+        // 回调 RaiseItemsChanged，宿主会再次调到这里。绝不在渲染线程上同步扫描。
+        if (_history.TryGetCached() is not { } snapshot)
+        {
+            // 冷态兜底：万一起始那轮刷新没跑成（例如守卫被占），在这里再唤起一次，
+            // 否则占位项会成为终态 —— 单飞守卫会拒掉重复调用，不会因此堆任务。
+            _history.RefreshInBackground(OnReadCompleted);
+            return [LoadingItem()];
+        }
+
+        // 快照过期时在后台补一次新数据，先把旧快照给用户看，避免任何一次输入都触发同步扫描。
+        if (_history.IsStale)
+        {
+            _history.RefreshInBackground(OnReadCompleted);
+        }
+
+        var all = snapshot.Items;
 
         if (all.Count == 0)
         {
-            return [DiagnosticItem(succeeded, failure)];
+            return [DiagnosticItem(snapshot.Succeeded, snapshot.Failure)];
         }
 
         // 页内搜索：这里显式按子串匹配，便于直接打项目名命中。
         var query = SearchText?.Trim();
-        var matched = _history.Search(query, IncludeFiles);
+        var matched = VSCodeRecentHistory.Search(all, query, IncludeFiles);
 
         if (matched.Count == 0)
         {
@@ -137,6 +165,17 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
 
         return IconHelpers.FromRelativePath(MaterialIconTheme.RelativePath(icon));
     }
+
+    /// <summary>
+    /// 后台首次读取还没完成时的占位项。它让首屏立刻有内容可渲染，
+    /// 而不是空白卡住；读完会被 <see cref="OnReadCompleted"/> 替换掉。
+    /// </summary>
+    private static ListItem LoadingItem() =>
+        new(new NoOpCommand())
+        {
+            Title = "正在读取 VSCode 最近记录…",
+            Subtitle = "首次读取可能需要几秒",
+        };
 
     /// <summary>
     /// 一条都读不到时的提示，并列出实际探测过的数据位置。
