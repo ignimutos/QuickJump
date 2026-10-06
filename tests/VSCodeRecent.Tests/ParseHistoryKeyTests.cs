@@ -41,9 +41,11 @@ public class ParseHistoryKeyTests
         Assert.Empty(items!);
     }
 
-    /// <summary>文件不存在的记录必须丢掉（与旧行为一致）。</summary>
+    /// <summary>
+    /// 记录指向的路径不存在也要保留 —— 与 VS Code 自己的最近列表一致，不做存在性过滤。
+    /// </summary>
     [Fact]
-    public void MissingFileEntry_IsDropped()
+    public void MissingFileEntry_IsKept()
     {
         var json = """
             {"entries":[
@@ -54,7 +56,31 @@ public class ParseHistoryKeyTests
         var items = ParseHistoryKey.RecordTargets(json, out var error);
 
         Assert.Null(error);
-        Assert.Empty(items!);
+        var item = Assert.Single(items!);
+        Assert.Equal(ItemKind.File, item.Kind);
+    }
+
+    /// <summary>
+    /// WSL 记录解析成本机可打开的目标，标题取路径最后一段。这条正是曾被存在性
+    /// 探测误删的形态（早前 `\\wsl.localhost\` 对 /mnt 下路径假否定），现在不做
+    /// 存在性检查，自然保留。具体探测行为删掉后已无法单测，这里锁定解析这一层。
+    /// </summary>
+    [Fact]
+    public void WslFolderEntry_ResolvesWithTitleFromPath()
+    {
+        var json = """
+            {"entries":[
+              {"folderUri":"vscode-remote://wsl%2Bdebian/mnt/d/Project/ignimutos/ScoopOCD"}
+            ]}
+            """;
+
+        var items = ParseHistoryKey.RecordTargets(json, out var error);
+
+        Assert.Null(error);
+        var item = Assert.Single(items!);
+        Assert.Equal(ItemKind.Folder, item.Kind);
+        Assert.Equal("ScoopOCD", item.Title);
+        Assert.IsType<VSCodeOpenTarget.WslFolder>(item.Target);
     }
 
     /// <summary>坏 JSON 要报错，而不是静默返回空 —— 这正是第二处深化的目的。</summary>
@@ -76,8 +102,7 @@ public class ParseHistoryKeyTests
     }
 
     /// <summary>
-    /// storage.json 的 backupWorkspaces 不做存在性检查（项目可能暂时不在线），
-    /// 所以任意路径都会被收下 —— 与最近记录的规则不同。
+    /// 已删除的项目也保留 —— 与 VS Code 自己的最近列表一致，不做存在性过滤。
     /// </summary>
     [Fact]
     public void StorageJsonWorkspace_DoesNotCheckExistence()

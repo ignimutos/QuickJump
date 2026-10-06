@@ -184,24 +184,15 @@ internal sealed class StorageJsonSource : IVSCodeHistorySource
 /// VSCode 写入的两种 JSON 形状 —— 全部解析规则集中在这里，只依赖字符串输入，
 /// 不碰文件系统，因此可以脱离 VSCode 直接测试。
 ///
-/// 两种形状的存在性检查规则不同，这是 VSCode 那边的既有事实：最近记录里
-/// folderUri 必须真是目录、workspace/file 必须真是文件；而 storage.json 的
-/// backupWorkspaces 只记录路径，不检查是否存在（项目可能暂时不在线）。
+/// <para><b>不按存在性过滤。</b>以前对记录里的 folder / workspace / file 做
+/// <c>Directory.Exists</c> / <c>File.Exists</c>，探测为假即丢弃。这在 WSL 上会误删：
+/// 落在 <c>/mnt/&lt;盘&gt;/...</c>（Linux 内挂载的 Windows 盘）的项目，经
+/// <c>\\wsl.localhost\</c> 访问时 Windows 侧会假否定，活项目被当成已删除丢掉。
+/// VS Code 自己的最近列表并不按存在性过滤，这里也不该 —— 与 VS Code 保持一致，
+/// 已删除的项目也留在列表里。</para>
 /// </summary>
 internal static class ParseHistoryKey
 {
-    private enum Existence
-    {
-        /// <summary>不检查</summary>
-        Any,
-
-        /// <summary>必须是目录</summary>
-        Directory,
-
-        /// <summary>必须是文件</summary>
-        File,
-    }
-
     /// <summary>
     /// <c>history.recentlyOpenedPathsList</c>：<c>{"entries":[...]}</c>。
     /// 解析失败返回 null，原因写进 <paramref name="error"/>。
@@ -275,7 +266,7 @@ internal static class ParseHistoryKey
             foreach (var ws in workspaces.EnumerateArray())
             {
                 if (ws.TryGetProperty("configURIPath", out var configPath) &&
-                    Resolve(configPath.GetString(), ItemKind.Workspace, Existence.Any) is { } item)
+                    Resolve(configPath.GetString(), ItemKind.Workspace) is { } item)
                 {
                     items.Add(item with { Order = order++ });
                 }
@@ -288,7 +279,7 @@ internal static class ParseHistoryKey
             foreach (var folder in folders.EnumerateArray())
             {
                 if (folder.TryGetProperty("folderUri", out var folderUri) &&
-                    Resolve(folderUri.GetString(), ItemKind.Folder, Existence.Any) is { } item)
+                    Resolve(folderUri.GetString(), ItemKind.Folder) is { } item)
                 {
                     items.Add(item with { Order = order++ });
                 }
@@ -302,29 +293,29 @@ internal static class ParseHistoryKey
     {
         if (entry.TryGetProperty("folderUri", out var folderUri))
         {
-            return Resolve(folderUri.GetString(), ItemKind.Folder, Existence.Directory, order);
+            return Resolve(folderUri.GetString(), ItemKind.Folder, order);
         }
 
         if (entry.TryGetProperty("workspace", out var workspace) &&
             workspace.TryGetProperty("configPath", out var configPath))
         {
-            return Resolve(configPath.GetString(), ItemKind.Workspace, Existence.File, order);
+            return Resolve(configPath.GetString(), ItemKind.Workspace, order);
         }
 
         // 最近记录里绝大多数是单独打开的文件，不处理会丢掉大部分数据
         if (entry.TryGetProperty("fileUri", out var fileUri))
         {
-            return Resolve(fileUri.GetString(), ItemKind.File, Existence.File, order);
+            return Resolve(fileUri.GetString(), ItemKind.File, order);
         }
 
         return null;
     }
 
     /// <summary>
-    /// 解析 URI、按类型做存在性检查、生成条目。类型在这里就定下来 ——
+    /// 解析 URI、生成条目。不做存在性检查 —— 见类注释。类型在这里就定下来，
     /// 标题形态（工作区去扩展名）依赖类型，不能留到后面再补。
     /// </summary>
-    private static VSCodeItem? Resolve(string? uri, ItemKind kind, Existence required, int order = 0)
+    private static VSCodeItem? Resolve(string? uri, ItemKind kind, int order = 0)
     {
         // 解析不出本机目标的（ssh-remote / dev-container）目前只能丢掉。
         // 见 VSCodeRecentHistory 的类注释：这些条目在界面上看不见，是已知缺口。
@@ -333,21 +324,9 @@ internal static class ParseHistoryKey
             return null;
         }
 
-        // WSL 走 UNC 形式：显示与存在性探测都用它，不受 9P 报错影响
+        // WSL 走 UNC 形式：显示与打开都用它
         var local = target.LocalPath;
         if (string.IsNullOrEmpty(local))
-        {
-            return null;
-        }
-
-        var passes = required switch
-        {
-            Existence.Directory => DirectoryExists(local),
-            Existence.File => FileExists(local),
-            _ => true,
-        };
-
-        if (!passes)
         {
             return null;
         }
@@ -369,30 +348,5 @@ internal static class ParseHistoryKey
             // 文件夹没有文件名，给 null 走默认文件夹图标。
             FileName = kind == ItemKind.Folder ? null : Path.GetFileName(local),
         };
-    }
-
-    /// <summary>WSL UNC 路径的探测会走 9P，失败时静默返回 false 而不是抛异常。</summary>
-    private static bool DirectoryExists(string path)
-    {
-        try
-        {
-            return Directory.Exists(path);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool FileExists(string path)
-    {
-        try
-        {
-            return File.Exists(path);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }
