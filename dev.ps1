@@ -162,6 +162,46 @@ function Get-InstalledDllHash {
     return (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
 }
 
+# 包数据目录（含 settings.json）。
+#
+# MSIX 把 %LOCALAPPDATA%\VSCodeRecent\settings.json 重定向到
+# %LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\VSCodeRecent 下，而这个目录会
+# 随卸载一起被删。
+#
+# 不能用 Remove-AppxPackage -PreserveApplicationData 保它：那个开关只对「以开发人员
+# 模式部署的程序包」有效，本包是旁加载（IsDevelopmentMode=False），传了直接报
+# 0x80073CFA。所以卸载前自己把目录复制出来，装完再放回去。
+function Save-PackageData {
+    # 已安装时用真实 PFN；未安装（全新部署）时按名称通配 —— 全新安装也会清掉同名的
+    # 遗留数据目录，所以这里不能要求包已在位。
+    $pfn = (Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue |
+        Select-Object -First 1).PackageFamilyName
+
+    if ($pfn) {
+        $dir = Join-Path $env:LOCALAPPDATA "Packages\$pfn\LocalCache\Local\VSCodeRecent"
+    } else {
+        $dir = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter "$PackageName`_*" -ErrorAction SilentlyContinue |
+            Select-Object -First 1 |
+            ForEach-Object { Join-Path $_.FullName 'LocalCache\Local\VSCodeRecent' }
+    }
+
+    if (-not $dir -or -not (Test-Path $dir)) { return $null }
+
+    $backup = Join-Path $env:TEMP ("VSCodeRecent-data-" + [Guid]::NewGuid().ToString('N'))
+    Copy-Item -LiteralPath $dir -Destination $backup -Recurse -Force
+    return [pscustomobject]@{ Dir = $dir; Backup = $backup }
+}
+
+function Restore-PackageData {
+    param($Saved)
+
+    if (-not $Saved -or -not $Saved.Backup -or -not (Test-Path $Saved.Backup)) { return }
+
+    New-Item -ItemType Directory -Path $Saved.Dir -Force | Out-Null
+    Copy-Item -Path (Join-Path $Saved.Backup '*') -Destination $Saved.Dir -Recurse -Force
+    Remove-Item -LiteralPath $Saved.Backup -Recurse -Force
+}
+
 # 安装包。返回是否成功，不抛异常，由调用方决定是否重试。
 function Install-Package {
     param(
@@ -171,15 +211,17 @@ function Install-Package {
 
     Stop-Everything
 
+    $saved = $null
     try {
         $existing = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue
 
+        # 无论覆盖还是卸载重装，都先备份 settings.json：全新安装也会清掉同名的遗留数据，
+        # 备案在前才接得住；装完在 finally 里放回去。
+        $saved = Save-PackageData
+
         if ($HardReset -and $existing) {
             Write-Host "  先卸载旧包（强制换掉文件）"
-            # 必须带 -PreserveApplicationData：不带的话 Remove-AppxPackage 连包数据一起删，
-            # 而 $env:LOCALAPPDATA\VSCodeRecent\settings.json 在 MSIX 里正被重定向到
-            # Packages\<PFN>\LocalCache\Local\ 下 —— 每跑一次 dev.cmd 就把用户的设置清空。
-            $existing | Remove-AppxPackage -PreserveApplicationData -ErrorAction Stop
+            $existing | Remove-AppxPackage -ErrorAction Stop
             Start-Sleep -Milliseconds 500
             $existing = $null
         }
@@ -195,6 +237,9 @@ function Install-Package {
     } catch {
         Write-Warning "安装失败：$($_.Exception.Message)"
         return $false
+    } finally {
+        # 无论装成没装成都把设置放回去，别让一次失败的部署顺手清掉用户设置。
+        Restore-PackageData -Saved $saved
     }
 }
 
@@ -205,9 +250,12 @@ if ($Uninstall) {
     Write-Step "卸载 $PackageName"
     $pkg = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue
     if ($pkg) {
-        # 同样保留包数据：这个开关是「安装失败时的手动恢复手段」，
-        # 不该顺手把用户的设置也清掉。真想连设置一起清，手动删那个目录。
-        $pkg | Remove-AppxPackage -PreserveApplicationData
+        # 卸载会连包数据一起删（settings.json 在 Packages\<PFN>\LocalCache 下）。
+        # -PreserveApplicationData 对旁加载包无效（只认开发人员模式部署），所以这里
+        # 自己备份 → 卸载 → 还原。
+        $saved = Save-PackageData
+        $pkg | Remove-AppxPackage
+        Restore-PackageData -Saved $saved
         Write-Host "  已卸载（设置已保留）"
     } else {
         Write-Host "  未安装，跳过"
