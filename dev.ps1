@@ -277,6 +277,20 @@ Write-Step "还原依赖"
 dotnet restore -p:Platform=$Platform
 if ($LASTEXITCODE -ne 0) { throw "dotnet restore 失败" }
 
+# 清单里的版本以 csproj 的 <Version> 为准（唯一版本源），避免本地出包版本滞后；
+# CI 也是同一套做法。第四段补 0（MSIX 保留给平台）。
+Write-Step "同步清单版本"
+$verText = Get-Content 'QuickJump.csproj' -Raw
+if ($verText -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
+    throw "QuickJump.csproj 里找不到形如 1.2.3 的 <Version>"
+}
+$ver = $Matches[1]
+$manifestPath = Join-Path $PSScriptRoot 'Package.appxmanifest'
+[xml]$manifest = Get-Content $manifestPath
+$manifest.Package.Identity.Version = "$ver.0"
+$manifest.Save($manifestPath)
+Write-Host "  Package.appxmanifest Version=$ver.0"
+
 Write-Step "编译并打包 ($Configuration / $Platform)"
 dotnet build -c $Configuration -p:Platform=$Platform
 if ($LASTEXITCODE -ne 0) { throw "dotnet build 失败" }

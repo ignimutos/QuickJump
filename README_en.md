@@ -203,15 +203,18 @@ change, CI builds only and skips the release:
 
 `.github/workflows/build.yml` will:
 
-1. Read the version from the csproj and stamp it into `Package.appxmanifest`
-   (`1.2.3` → `1.2.3.0`)
-2. Create and push tag `v1.2.3` when that version has no tag. A tag pushed with
-   `GITHUB_TOKEN` does not start another workflow run.
-3. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
+1. Read the version from the csproj, or from a manually pushed tag, and stamp it into
+   `Package.appxmanifest` (`1.2.3` → `1.2.3.0`)
+2. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
    runners respectively
-4. Create a release and upload `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+3. Create the release when that version has no tag yet. The release step creates tag
+   `v1.2.3` and uploads `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
 
-The manual `git tag v1.2.3 && git push origin v1.2.3` path still works and publishes too.
+The release step creates the tag, so a failed build leaves no tag behind to block the
+next retry. A tag created with `GITHUB_TOKEN` does not start another workflow run.
+
+The manual `git tag v1.2.3 && git push origin v1.2.3` path still works. The tag number then
+sets the version, so it must match `<Version>` in `QuickJump.csproj`.
 
 ### Publishing to the Microsoft Store
 
