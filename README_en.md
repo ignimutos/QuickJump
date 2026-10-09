@@ -192,20 +192,26 @@ Get-AppxPackage -Name "QuickJump" | Remove-AppxPackage
 
 ## Publishing
 
-Pushing a tag runs the build and creates a release:
+The single version source is `<Version>` in `QuickJump.csproj`. Change it and push to
+`main`. CI then tags `v<version>` and creates a release. When the version does not
+change, CI builds only and skips the release:
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
+```xml
+<!-- QuickJump.csproj -->
+<Version>1.1.0</Version>
 ```
 
 `.github/workflows/build.yml` will:
 
-1. Derive the version from the tag and stamp it into `Package.appxmanifest`
-   (`v1.2.3` → `1.2.3.0`)
-2. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
+1. Read the version from the csproj and stamp it into `Package.appxmanifest`
+   (`1.2.3` → `1.2.3.0`)
+2. Create and push tag `v1.2.3` when that version has no tag. A tag pushed with
+   `GITHUB_TOKEN` does not start another workflow run.
+3. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
    runners respectively
-3. Create a release and upload `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+4. Create a release and upload `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+
+The manual `git tag v1.2.3 && git push origin v1.2.3` path still works and publishes too.
 
 ### Publishing to the Microsoft Store
 

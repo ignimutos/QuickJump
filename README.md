@@ -177,18 +177,22 @@ Get-AppxPackage -Name "QuickJump" | Remove-AppxPackage
 
 ## 发布
 
-打 tag 即触发构建与发布：
+版本号的唯一来源是 `QuickJump.csproj` 的 `<Version>`。改版本号并 push 到 `main`，
+CI 自动打 `v<版本>` tag 并发 Release；版本没变时只构建，不重复发版：
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
+```xml
+<!-- QuickJump.csproj -->
+<Version>1.1.0</Version>
 ```
 
 `.github/workflows/build.yml` 会：
 
-1. 从 tag 解析版本号，覆写 `Package.appxmanifest` 的 `Version`（`v1.2.3` → `1.2.3.0`）
-2. 在 x64 与 arm64 两个原生 runner 上各跑测试并构建 `x64` / `ARM64` 两个 `.msix`
-3. 建 Release 并上传 `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+1. 从 csproj 解析版本，覆写 `Package.appxmanifest` 的 `Version`（`1.2.3` → `1.2.3.0`）
+2. 该版本没对应 tag 时创建 `v1.2.3` 并 push（GITHUB_TOKEN 推的 tag 不会再触发 workflow）
+3. 在 x64 与 arm64 两个原生 runner 上各跑测试并构建 `x64` / `ARM64` 两个 `.msix`
+4. 建 Release 并上传 `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+
+手工 `git tag v1.2.3 && git push origin v1.2.3` 的旧路径仍可用，同样会发布。
 
 ### 发布到 Microsoft Store
 
