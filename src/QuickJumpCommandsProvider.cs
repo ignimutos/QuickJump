@@ -31,9 +31,16 @@ public partial class QuickJumpCommandsProvider : CommandProvider
         var history = VSCodeHistory.Shared;
         var listPage = new VSCodeListPage(_settings, history);
 
-        _fallbacks = [new VSCodeFallbackItem(_settings, history, listPage)];
-
         var mobaSessions = new MobaXtermSessions();
+        var mobaListPage = new MobaXtermSessionListPage(_settings, mobaSessions);
+
+        // 两个模块各一个根搜索回退项（Fallback）。列表页提到变量里，
+        // 顶层命令与回退项共用同一实例，因而共用设置订阅与缓存 —— 与 VSCode 侧一致。
+        _fallbacks =
+        [
+            new VSCodeFallbackItem(_settings, history, listPage),
+            new MobaXtermFallbackItem(_settings, mobaSessions, mobaListPage),
+        ];
 
         _commands =
         [
@@ -43,7 +50,7 @@ public partial class QuickJumpCommandsProvider : CommandProvider
                 Subtitle = "打开最近项目",
                 Icon = IconHelpers.FromRelativePath(VSCodeIcons.App),
             },
-            new CommandItem(new MobaXtermSessionListPage(_settings, mobaSessions))
+            new CommandItem(mobaListPage)
             {
                 Title = "MobaXterm",
                 Subtitle = "搜索并连接 session",

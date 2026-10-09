@@ -46,6 +46,16 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
     /// <summary>宿主送来的每次输入。查询词已在 SearchText 上，这里只负责刷列表。</summary>
     public override void UpdateSearchText(string oldSearch, string newSearch) => RaiseItemsChanged();
 
+    /// <summary>
+    /// 根列表的 Fallback 内联搜索复用同一个页面实例：把预筛词写进
+    /// <see cref="ListPage.SearchText"/>，宿主进入本页时会把筛选框也填成这个词。
+    ///
+    /// <para>理由与 <c>VSCodeListPage.SetFixedQuery</c> 相同：另存一份「固定关键词」并优先采用，
+    /// 会让用户进页面后清空搜索框、列表却还是旧结果。这里不自己 RaiseItemsChanged ——
+    /// <c>SearchText</c> 的 setter（DynamicListPage）会转手调 <see cref="UpdateSearchText"/>。</para>
+    /// </summary>
+    public void SetFixedQuery(string? query) => SearchText = query?.Trim() ?? string.Empty;
+
     public override IListItem[] GetItems()
     {
         // 覆盖路径可能刚被改过：与快照记录的不一致时，这份快照就不作数。
