@@ -6,7 +6,7 @@
 
     <!-- 版本号唯一来源。CI 从这里取值打 tag 发 Release，并覆盖清单里的包版本；
          SDK 据此生成 AssemblyVersion / FileVersion / InformationalVersion。 -->
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
 
     <WindowsSdkPackageVersion>10.0.26100.84</WindowsSdkPackageVersion>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>

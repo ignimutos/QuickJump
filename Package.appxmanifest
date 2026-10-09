@@ -6,7 +6,7 @@
     Add-AppxPackage -AllowUnsigned 安装，否则报 0x80073D2C。
     将来做代码签名（上架/分发）时，把这个 OID 去掉，换回与证书匹配的 CN。
   -->
-  <Identity Name="QuickJump" Publisher="CN=ignimutos, OID.2.25.311729368913984317654407730594956997722=1" Version="1.1.1.0" />
+  <Identity Name="QuickJump" Publisher="CN=ignimutos, OID.2.25.311729368913984317654407730594956997722=1" Version="1.2.0.0" />
   <Properties>
     <DisplayName>QuickJump</DisplayName>
     <PublisherDisplayName>ignimutos</PublisherDisplayName>
