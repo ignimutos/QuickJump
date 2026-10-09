@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "QuickJump (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "QuickJump (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

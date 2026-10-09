@@ -1,0 +1,172 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # 版本来源是 csproj 的 <Version>。这里只解析版本并判断本次该不该发版；tag 由
+  # release job 在 build 成功后才创建，所以 build 失败的版本下次 push 会自动重试。
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+      tag: ${{ steps.detect.outputs.tag }}
+      release: ${{ steps.detect.outputs.release }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Detect version
+      id: detect
+      shell: bash
+      run: |
+        set -euo pipefail
+        release=false
+
+        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          # 手工推 tag 的旧路径：版本以 tag 为准，照常发布。
+          tag="${GITHUB_REF#refs/tags/}"
+          ver="${tag#v}"
+          if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must look like v1.2.3, got '$tag'" >&2
+            exit 1
+          fi
+          release=true
+        else
+          ver=$(grep -oPm1 '(?<=<Version>)[^<]+' QuickJump.csproj)
+          if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "QuickJump.csproj <Version> must look like 1.2.3, got '$ver'" >&2
+            exit 1
+          fi
+          tag="v$ver"
+          # 推 main 时：该版本尚无 tag 才发布，已有则只构建（幂等）。
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              echo "Tag $tag already exists. Build only."
+            else
+              release=true
+            fi
+          fi
+        fi
+
+        echo "version=$ver" >> "$GITHUB_OUTPUT"
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        echo "release=$release" >> "$GITHUB_OUTPUT"
+        echo "Resolved version=$ver tag=$tag release=$release"
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x64
+            os: windows-latest
+          # ARM64 必须跑在 arm64 宿主上：测试程序集按 Platform 编成 win-arm64，
+          # x64 runner 上装不出对应的 dotnet 测试宿主，会报
+          # "Could not find 'dotnet.exe' host for the 'ARM64' architecture"。
+          # 那条腿一挂，整个 job 就算失败，needs: build 的 release 也跟着被跳过。
+          - platform: ARM64
+            os: windows-11-arm
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: '10.0.x'
+
+    # 清单里的版本只是本地构建的默认值，可能滞后；这里无条件按 version job 解析出的
+    # 版本盖章，保证包内版本与 Release 一致。第四段必须为 0（Store / MSIX 规范保留给平台）。
+    - name: Stamp version into manifest
+      shell: pwsh
+      run: |
+        $ver = "${{ needs.version.outputs.version }}"
+        $manifest = Join-Path "${{ github.workspace }}" 'Package.appxmanifest'
+        [xml]$x = Get-Content $manifest
+        $x.Package.Identity.Version = "$ver.0"
+        $x.Save($manifest)
+        Write-Host "Stamped Package.appxmanifest Version=$ver.0"
+
+    - name: Restore
+      run: dotnet restore -p:Platform=${{ matrix.platform }}
+
+    # 纯逻辑测试（URI 解析、JSON 解析、过滤排序），不需要 VSCode 也不需要装扩展。
+    # 放在打包前，逻辑坏了就别出包。两条腿各自原生跑，不需要特例。
+    - name: Test
+      run: dotnet test tests/QuickJump.Tests/QuickJump.Tests.csproj -c Release -p:Platform=${{ matrix.platform }}
+
+    - name: Build
+      run: dotnet build -c Release -p:Platform=${{ matrix.platform }} --no-restore
+
+    # 官方 recipe：AppxBundle=Never 保证每个平台产出单个 .msix 而不是 bundle
+    - name: Publish MSIX
+      run: >
+        dotnet publish -c Release
+        -p:Platform=${{ matrix.platform }}
+        -p:WindowsPackageType=MSIX
+        -p:AppxPackageDir="${{ github.workspace }}\AppPackages\"
+        -p:GenerateAppxPackageOnBuild=true
+        -p:AppxBundle=Never
+
+    - name: Stage MSIX
+      shell: pwsh
+      run: |
+        $msix = Get-ChildItem -Path "${{ github.workspace }}\AppPackages" -Recurse -Filter *.msix -ErrorAction Stop |
+          Where-Object { $_.FullName -notmatch '\\Dependencies\\' } |
+          Select-Object -First 1
+        if (-not $msix) { throw "No MSIX produced by dotnet publish" }
+        New-Item -ItemType Directory -Path staging -Force | Out-Null
+        Copy-Item $msix.FullName -Destination "staging/QuickJump-${{ matrix.platform }}.msix"
+        Write-Host "Staged: staging/QuickJump-${{ matrix.platform }}.msix"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: QuickJump-${{ matrix.platform }}
+        path: staging/*.msix
+
+  release:
+    needs: [build, version]
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v8
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    # 先建成草稿：store.yml 监听 published，而直接建正式 Release 会在资产上传完
+    # 之前就触发事件，store.yml 会下不到 .msix。
+    #
+    # tag 在这里创建（tag_name + target_commitish），而不是在 version job 里提前 push：
+    # 这样 build 失败时不会留下已推的 tag 把下次重试挡成 release=false。action-gh-release
+    # 用 GITHUB_TOKEN 建 tag，其 push 事件不会触发别的 workflow，不会递归。
+    - name: Create draft Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: ${{ needs.version.outputs.tag }}
+        target_commitish: ${{ github.sha }}
+        files: artifacts/*.msix
+        generate_release_notes: true
+        draft: true
+
+    # 本 job 没有 checkout，cwd 下没有 .git；gh 默认靠 git remote 推断仓库，
+    # 会报 "not a git repository"，所以要显式给 -R。
+    - name: Publish Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release edit '${{ needs.version.outputs.tag }}' -R '${{ github.repository }}' --draft=false --latest

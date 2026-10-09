@@ -1,0 +1,361 @@
+# QuickJump
+
+[![Build](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml/badge.svg)](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> Read this in other languages: [简体中文](./README.md)
+
+A PowerToys Command Palette extension — quick jumping to recent VSCode projects and MobaXterm sessions.
+One extension, two modules (VSCode / MobaXterm), each with its own top-level command.
+
+## Features
+
+- Auto-display recently opened VSCode folders and workspaces
+- List ordered by last-opened time, newest first
+- WSL remote project support (restores the `vscode-remote://wsl+` URI)
+- One keystroke to open in VSCode
+- A **Show files** setting to include individually opened files (off by default). When on,
+  the list splits into **Projects (N)** / **Files (N)** groups, each labelled with its count —
+  the same split VSCode itself uses, since the two segments have no comparable timestamps
+  (VSCode stores order, not time). CmdPal list pages are a single scrolling column, so side-by-side
+  columns are not possible; when the file list is long, typing to filter beats scrolling
+- A second top-level command, **MobaXterm**: search the local MobaXterm sessions
+  (folder levels included), then press Enter to open one with `MobaXterm.exe -bookmark` and
+  log in to it
+
+## Installation
+
+1. Grab the `.msix` for your architecture (`x64` or `ARM64`) from
+   [Releases](https://github.com/ignimutos/QuickJump/releases)
+2. Enable Developer Mode: Settings → System → For developers → Developer Mode
+3. Open PowerShell **as administrator** and `cd` to the folder holding the `.msix`
+4. Install:
+
+```powershell
+Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
+```
+
+5. Open Command Palette and run `Reload Command Palette Extension`
+
+> Two prerequisites, both required:
+> - **Developer Mode** — an unsigned package needs sideloading allowed.
+> - **Administrator** — the package contains executables, and an unsigned package can
+>   only be installed for all users, which requires elevation. Without it you get
+>   `0x80073D2C` or a permission error.
+>
+> When overwriting an older version, add `-ForceUpdateFromAnyVersion`, otherwise an equal
+> or lower version number is rejected.
+
+## Usage
+
+1. Press `Win + Alt + Space` to open Command Palette (default; changable in Command Palette settings)
+2. **Scroll to the very bottom of the root list** — extension top-level commands come after the built-in ones. In compact mode, press `↓` or `Tab` first to expand the list
+3. Select **VSCode** and press Enter
+4. Select a project and press Enter to open it in VSCode
+
+There is a faster path: type a project name (at least 2 characters) into the root search box.
+The extension shows up in the results as a fallback item —
+
+- **Exactly one match**: Enter **opens that project directly**, skipping the list page
+- **Several matches**: Enter opens the list page with your query already filled in; keep editing it there
+
+> The fallback only appears once the search box has input — the host keeps items with an empty `Title`
+> out of the root list, and a fallback must start empty or it wastes a row. So "see your projects with
+> an empty search box" is not possible.
+
+### MobaXterm
+
+The **MobaXterm** top-level command lists every session in the local `MobaXterm.ini`:
+
+- **Each row**: the session name as the title, the folder and `user@host:port` in the subtitle, and
+  a per-protocol icon (SSH / WSL / other). Enter opens it with
+  `MobaXterm.exe -bookmark "User sessions\<folder>\<name>"`, which makes MobaXterm log in to that
+  session.
+- **Folder rows** (shown by default): one row per folder that appears, with a folder icon. Clicking
+  it opens a sub-page for that folder, listing only its sessions (it starts nothing). Use the
+  Command Palette's own back arrow to go up. When the host setting
+  `Appearance -> Go back with Backspace when search is empty` is on, clearing the box and pressing
+  Backspace also goes back. Turn folder rows off in the settings to list sessions only.
+- **Search**: filters by name, folder, or host substring. Typing a folder name (e.g. `remote`) shows
+  every session in that folder, whether or not folder rows are shown.
+
+> Like VSCode, this is a **top-level command**. For faster access, assign it an alias
+> (Aliases) or a hotkey in the Command Palette settings — for example a single character, as
+> VSCode does. Aliases and hotkeys are host settings; an extension cannot declare them.
+
+## Settings
+
+In the Command Palette extension settings you can configure:
+
+- **Show files** (off by default) — most VSCode recent entries are individually opened files,
+  so they are filtered out unless you opt in.
+- **Activate on open** (on by default) — bring the VSCode / MobaXterm window to the foreground
+  after opening. A program launched by a background process opens behind by default; turn this
+  off to leave it in the background.
+- **MobaXterm.ini path** / **MobaXterm.exe path** (empty by default) — leave empty to
+  auto-detect (portable / Scoop / Documents / PATH); set them when detection fails.
+- **Show folders** (on by default) — whether to show folder rows in the MobaXterm list. Turn it off
+  to list sessions only. Folder names are always searchable either way; this only controls whether
+  a folder also gets its own row.
+
+Settings live in `%LOCALAPPDATA%\QuickJump\settings.json`.
+
+## Requirements
+
+- Windows 11 (10.0.19041.0+)
+- Command Palette 0.12+ (a standalone Store app since that version, no longer shipped with PowerToys)
+- VSCode installed with the `code` command available
+
+## VSCode Data Location
+
+Searched in priority order, falling back at each step:
+
+1. **Shared Storage** (VSCode 1.75+ default)
+   - `%USERPROFILE%\.vscode-shared\sharedStorage\state.vscdb`
+2. **SQLite Database**
+   - `%APPDATA%\Code\User\globalStorage\*\state.vscdb`
+3. **Legacy JSON format**
+   - `%APPDATA%\Code\User\globalStorage\storage.json`
+
+## MobaXterm Data Location
+
+Sessions are plain text in the `[Bookmarks]` / `[Bookmarks_N]` sections of `MobaXterm.ini`,
+searched in this priority order (the first one that exists wins; a path override in the settings
+takes precedence over all of them):
+
+1. **Next to the executable** (portable) — `<exe dir>\MobaXterm.ini` or its parent
+2. **Scoop** — `<scoop root>\persist\mobaxterm\MobaXterm.ini`
+3. **Documents** (installed) — `%USERPROFILE%\Documents\MobaXterm\MobaXterm.ini`
+
+`MobaXterm.exe` is resolved in this order: settings override → PATH → Scoop
+`apps\mobaxterm\current` → a running MobaXterm process.
+
+> The session folder level comes from `SubRep`, and the `-bookmark` path is built as
+> `User sessions\<folder>\<name>`. Passwords live in the separate `[Passwords]` / `[Sesspass]`
+> sections (encrypted); this extension neither reads nor moves them.
+
+## Development
+
+Requires the .NET 10 SDK. Target framework is `net10.0-windows10.0.26100.0`.
+
+**Use the one-shot script** (stop processes → package → install → restart Command Palette):
+
+```powershell
+.\dev.cmd                    # Debug + x64, full pipeline
+.\dev.cmd -Configuration Release
+.\dev.cmd -Platform ARM64
+.\dev.cmd -NoRestart          # skip restarting Command Palette
+.\dev.cmd -Stop               # only stop the extension and Command Palette
+.\dev.cmd -Uninstall          # uninstall the extension
+```
+
+> If running `.\dev.ps1` directly from a WSL UNC path fails with "not digitally signed",
+> use the `dev.cmd` entry point — it applies `-ExecutionPolicy Bypass` to that single
+> invocation without changing the system execution policy. Alternatively run
+> `.\dev.ps1` from a **local Windows disk** rather than `\\wsl.localhost\...`.
+
+Manual build:
+
+```powershell
+dotnet restore -p:Platform=x64
+dotnet build -c Debug -p:Platform=x64
+```
+
+Output: `AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix`
+
+If `dotnet build` does not produce a `.msix`, use the official publish recipe:
+
+```powershell
+dotnet publish -c Debug -p:Platform=x64 `
+  -p:WindowsPackageType=MSIX `
+  -p:AppxPackageDir="$PWD\AppPackages\" `
+  -p:GenerateAppxPackageOnBuild=true `
+  -p:AppxBundle=Never
+```
+
+Install and test:
+
+```powershell
+Add-AppxPackage -Path .\AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix -AllowUnsigned
+```
+
+> Unsigned install requires the manifest `Publisher` to carry the Windows-reserved
+> `OID.2.25.311729368913984317654407730594956997722=1` (see
+> [MS docs](https://learn.microsoft.com/en-us/windows/msix/package/unsigned-package)).
+> The repo is already configured this way; `-AllowUnsigned` is what actually permits
+> the unsigned deployment.
+
+After rebuilding, reinstall and run `Reload Command Palette Extension` from the palette — otherwise it will not reload the extension.
+
+Uninstall:
+
+```powershell
+Get-AppxPackage -Name "QuickJump" | Remove-AppxPackage
+```
+
+## Publishing
+
+The single version source is `<Version>` in `QuickJump.csproj`. Change it and push to
+`main`. CI then tags `v<version>` and creates a release. When the version does not
+change, CI builds only and skips the release:
+
+```xml
+<!-- QuickJump.csproj -->
+<Version>1.1.0</Version>
+```
+
+`.github/workflows/build.yml` will:
+
+1. Read the version from the csproj, or from a manually pushed tag, and stamp it into
+   `Package.appxmanifest` (`1.2.3` → `1.2.3.0`)
+2. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
+   runners respectively
+3. Create the release when that version has no tag yet. The release step creates tag
+   `v1.2.3` and uploads `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
+
+The release step creates the tag, so a failed build leaves no tag behind to block the
+next retry. A tag created with `GITHUB_TOKEN` does not start another workflow run.
+
+The manual `git tag v1.2.3 && git push origin v1.2.3` path still works. The tag number then
+sets the version, so it must match `<Version>` in `QuickJump.csproj`.
+
+### Publishing to the Microsoft Store
+
+`.github/workflows/store.yml` submits through the
+[MSStore CLI](https://github.com/microsoft/msstore-cli) after a release is published.
+The Store **re-signs** packages with its own certificate, so no signing certificate of
+your own is needed.
+
+The workflow downloads the `.msix` from the release, combines the architectures into an
+`.msixbundle` with `makeappx`, then runs `msstore publish` (upload → commit → poll → publish).
+
+> The Store accepts a single package file per submission, hence the bundle. Two separate
+> `publish` calls would make the second one delete the draft submission the first created.
+
+**This workflow is optional**: when the secrets below are not configured, the first step
+detects that and the job skips — it shows as a green success and never blocks release
+distribution. To drop it entirely, just delete `.github/workflows/store.yml`.
+
+**Prerequisites (one-time, all manual):**
+
+1. Register a [Partner Center](https://partner.microsoft.com/dashboard) developer account
+   (~$19 one-off for individuals)
+2. Reserve the app name in Partner Center, then fill the assigned
+   `Package/Identity/Name`, `Publisher` and `PublisherDisplayName` into
+   `Package.appxmanifest` — they must match Partner Center **exactly**, including case.
+   Drop the unsigned-namespace OID from `Publisher` at the same time
+3. Create an Azure AD tenant, associate it with Partner Center, and register an Azure AD
+   application with the **Manager** role
+4. Submit once by hand from Partner Center (age ratings questionnaire etc.). The API cannot
+   create the *first* submission; it can only continue an existing one that already has
+   listings
+5. Add the GitHub secrets:
+   - `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` / `SELLER_ID` (the
+     Seller ID from Partner Center account settings)
+   - `PRODUCT_ID` (the Partner Center app ID, a.k.a. `AppId`)
+
+Every later release is then submitted automatically. You can also trigger it by hand from
+the Actions tab via `workflow_dispatch`.
+
+### Code signing
+
+The Store path needs no signing of your own (the Store re-signs). This is only needed if
+you later ship signed MSIX packages outside the Store. Two places must change:
+
+1. Set `Package.appxmanifest`'s `Publisher` to the certificate CN and remove
+   `OID.2.25.311729368913984317654407730594956997722=1`
+2. Flip `<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>` to `true` in
+   `QuickJump.csproj` and supply `PackageCertificateKeyFile` /
+   `PackageCertificateThumbprint`
+
+Pick either **Azure Trusted Signing** (from $9.99/month, CI-friendly) or a traditional OV
+certificate (EV needs a hardware token, which does not fit pure CI).
+
+## Project Structure
+
+```
+.
+├── QuickJump.csproj              # Project file
+├── Directory.Packages.props         # Central package version management
+├── global.json                      # Pinned SDK version
+├── Package.appxmanifest             # MSIX manifest (COM server + Command Palette registration)
+├── app.manifest                     # Application manifest (DPI awareness)
+├── src/
+│   ├── Program.cs                   # Entry point, COM server host
+│   ├── QuickJumpExtension.cs     # IExtension implementation (COM activation entry)
+│   ├── QuickJumpCommandsProvider.cs # Command provider (derives from Toolkit CommandProvider) — the module entries live here
+│   ├── QuickJumpSettings.cs      # Extension settings (JsonSettingsManager)
+│   ├── WindowActivation.cs          # Bring an external app's window to the foreground
+│   ├── VSCode/                      # All code for the VSCode module
+│   │   ├── VSCodeInstall.cs         # Where VSCode lives: location probes (standard / portable / Scoop)
+│   │   ├── VSCodeHistory.cs   # VSCode history reader: sources, dedupe, sort, cache
+│   │   ├── VSCodeHistorySource.cs   # One data source + JSON parsing rules (ParseHistoryKey)
+│   │   ├── VSCodeUri.cs             # VSCode URI → open target (decoded in exactly one place)
+│   │   ├── VSCodeFallbackItem.cs  # Root-search inline fallback item
+│   │   ├── OpenInVSCodeCommand.cs   # Open in VSCode (launching only)
+│   │   ├── VSCodeListPage.cs  # Recent projects list page
+│   │   ├── VSCodeItem.cs            # One recent entry
+│   │   ├── ItemKind.cs              # Kind: label / is-project / tie-break rank
+│   │   ├── ItemGroups.cs            # List-page grouping (projects / files)
+│   │   ├── VSCodeOpenTarget.cs      # Open target: local / WSL, command line + display path
+│   │   ├── MaterialIconTheme.cs     # File-name → colored icon (mapping embedded)
+│   │   └── VSCodeIcons.cs           # Module app-icon path constant
+│   └── MobaXterm/                   # All code for the MobaXterm module
+│       ├── MobaXtermInstall.cs      # Where MobaXterm lives: ini/exe location probes
+│       ├── MobaXtermSessions.cs     # Session reader: cache + snapshot + background refresh
+│       ├── MobaXtermIni.cs          # MobaXterm.ini [Bookmarks*] parsing (pure function)
+│       ├── MobaXtermSession.cs      # One MobaXterm session (with its -bookmark path)
+│       ├── OpenInMobaXtermCommand.cs  # Open a session in MobaXterm (launching only)
+│       ├── MobaXtermSessionListPage.cs  # MobaXterm session list page
+│       ├── MobaXtermFolderPage.cs   # Sub-page for one folder (opened from a folder row)
+│       ├── MobaXtermSessionRow.cs   # Builds a session row (shared by both pages)
+│       └── MobaXtermIcons.cs        # Pick the row icon by protocol
+├── tests/QuickJump.Tests/        # Pure-logic tests (xUnit), no VSCode needed
+└── Assets/                          # MSIX icon assets
+    ├── MaterialIcons/               # File-name → colored icon (MIT, see its NOTICE.md)
+    ├── MobaIcons/                   # MobaXterm session-type icons (Tabler, MIT, see its NOTICE.md)
+    └── VSCodeIcons/                 # VSCode module app icon (drawn, see its NOTICE.md)
+```
+
+### Implementation Notes
+
+- The provider **must derive from** `Microsoft.CommandPalette.Extensions.Toolkit.CommandProvider`; do not hand-implement `ICommandProvider`. The base class supplies all the plumbing, and subclasses only `override TopLevelCommands()`.
+- The `[Guid]` in `QuickJumpExtension.cs` must match the COM `Class Id` in `Package.appxmanifest`.
+- This is an out-of-process WinRT/COM extension. It **cannot** be loaded the PowerToys Run `plugin.json` way.
+- The list page **must derive from `DynamicListPage`**, not `ListPage`: with a plain `ListPage` the host
+  does the prefix fuzzy-matching and the page never sees the query. `SearchText` is the **single source
+  of truth** for the query — the host only reads it once, when it initializes the page
+  (`SearchText = model.SearchText` in `ListViewModel`), and every later keystroke arrives via
+  `UpdateSearchText`. Keeping a second copy and preferring it causes "clearing the search box leaves the
+  old results".
+- Do **not** insert `Separator`s for grouping yourself: the host groups by `IListItem.Section`, and an
+  item only counts as a section header when its `Command` is empty. The Toolkit `Section` helper inserts
+  the separator for you.
+- The MobaXterm data source does **not** use `IVSCodeHistorySource`: that interface's `SourceRead`
+  carries `VSCodeItem` (with MRU `Order`, dedupe, WSL targets), while a session is a tree in a config
+  file. `MobaXtermSessions` reuses only the refresh/cache **shape**, not its types.
+- A MobaXterm session's folder level comes **only from the `SubRep` string**; the `[Bookmarks_N]`
+  number does not take part in depth (no assumption that numbers are contiguous). `__PTVIRG__` is
+  the escape for a `;` inside a value.
+- Launching MobaXterm **starts the exe directly, without `cmd.exe`**: `OpenInVSCodeCommand` wraps cmd
+  only because `code` on PATH is a `.cmd` batch file. `MobaXterm.exe` is a real GUI program, so
+  wrapping it would expand `%` and add a window risk.
+- Open a session with **`-bookmark` alone, without `-newtab`**. Measured: `-bookmark` by itself
+  reuses a running MobaXterm (opening a new tab in its window) and starts one if none is running.
+  `-newtab` instead means "run the following command in a new tab" (docs: `-newtab ["<Command>"]`),
+  so appending `-bookmark ...` makes MobaXterm run it as a shell command — the tab prints a run of
+  `set -o` lines, then `/bin/bash: -c: option requires an argument`, and closes.
+- The path in the arguments **must be quoted as a whole** (`-bookmark "User sessions\ld\gateway"`):
+  the name contains a space, and without quotes it is split at the space, giving
+  `no bookmark folder "User"`.
+- **Bringing a window to the front needs minimize + restore, not a bare `SetForegroundWindow`.**
+  The extension is an out-of-process COM server, so it does not start in the foreground, and the
+  Windows foreground lock makes a plain `SetForegroundWindow` fail (measured: returns false);
+  `SwitchToThisWindow` fails too. `ShowWindow(SW_MINIMIZE)` + `ShowWindow(SW_RESTORE)` first
+  re-qualifies the window for activation, after which `SetForegroundWindow` works — see
+  `WindowActivation.cs`. Take a window snapshot before launching and activate only the newly
+  appeared window, so an unrelated window is never focused.
+
+## License
+
+[MIT](LICENSE)
