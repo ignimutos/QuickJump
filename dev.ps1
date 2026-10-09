@@ -286,10 +286,22 @@ if ($verText -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
 }
 $ver = $Matches[1]
 $manifestPath = Join-Path $PSScriptRoot 'Package.appxmanifest'
-[xml]$manifest = Get-Content $manifestPath
-$manifest.Package.Identity.Version = "$ver.0"
-$manifest.Save($manifestPath)
-Write-Host "  Package.appxmanifest Version=$ver.0"
+
+# 只替换 <Identity ... Version="..."/> 里的版本号，不整文件重写。
+# 旧实现用 [xml] 解析后 Save()，PowerShell 会按自己的格式重新序列化整个文件
+# （行尾从 CRLF 变成混合、缩进/编码被改写），于是版本号没变也会产生一堆无意义的 diff。
+$manifestText = Get-Content $manifestPath -Raw
+$identity = [regex]::new('(<Identity\b[^>]*\bVersion=")[0-9]+(?:\.[0-9]+)*(")')
+$newManifestText = $identity.Replace($manifestText, '${1}' + $ver + '.0${2}', 1)
+
+if ($newManifestText -eq $manifestText) {
+    Write-Host "  Package.appxmanifest Version=$ver.0（已是，未改动）"
+} else {
+    # 带 BOM 的 UTF-8 写回，与仓库现有编码一致
+    [System.IO.File]::WriteAllText(
+        $manifestPath, $newManifestText, [System.Text.UTF8Encoding]::new($true))
+    Write-Host "  Package.appxmanifest Version=$ver.0"
+}
 
 Write-Step "编译并打包 ($Configuration / $Platform)"
 dotnet build -c $Configuration -p:Platform=$Platform
