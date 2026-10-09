@@ -21,7 +21,7 @@ One extension, two modules (VSCode / MobaXterm), each with its own top-level com
   columns are not possible; when the file list is long, typing to filter beats scrolling
 - A second top-level command, **MobaXterm**: search the local MobaXterm sessions
   (folder levels included), then press Enter to open one with `MobaXterm.exe -bookmark` and
-  log in to it
+  log in to it; it also supports hitting a session straight from the root search box (below)
 
 ## Installation
 
@@ -78,6 +78,15 @@ The **MobaXterm** top-level command lists every session in the local `MobaXterm.
   Backspace also goes back. Turn folder rows off in the settings to list sessions only.
 - **Search**: filters by name, folder, or host substring. Typing a folder name (e.g. `remote`) shows
   every session in that folder, whether or not folder rows are shown.
+
+Like VSCode, you can also type a session name (at least 2 characters) straight into the **root
+search box**, without entering the list page first:
+
+- **Exactly one match**: Enter **connects** to that session directly, without the list page
+- **Several matches**: Enter opens the list page with your query already filled in
+
+> Like the VSCode fallback, it appears only when the search box has input. You can toggle it and
+> reorder it in Command Palette **Settings -> Fallback commands**.
 
 > Like VSCode, this is a **top-level command**. For faster access, assign it an alias
 > (Aliases) or a hotkey in the Command Palette settings — for example a single character, as
@@ -286,6 +295,7 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 │   ├── QuickJumpCommandsProvider.cs # Command provider (derives from Toolkit CommandProvider) — the module entries live here
 │   ├── QuickJumpSettings.cs      # Extension settings (JsonSettingsManager)
 │   ├── WindowActivation.cs          # Bring an external app's window to the foreground
+│   ├── FallbackItem.cs              # Shared skeleton for the root-search fallback items
 │   ├── VSCode/                      # All code for the VSCode module
 │   │   ├── VSCodeInstall.cs         # Where VSCode lives: location probes (standard / portable / Scoop)
 │   │   ├── VSCodeHistory.cs   # VSCode history reader: sources, dedupe, sort, cache
@@ -308,6 +318,7 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 │       ├── OpenInMobaXtermCommand.cs  # Open a session in MobaXterm (launching only)
 │       ├── MobaXtermSessionListPage.cs  # MobaXterm session list page
 │       ├── MobaXtermFolderPage.cs   # Sub-page for one folder (opened from a folder row)
+│       ├── MobaXtermFallbackItem.cs # Root-search inline fallback item
 │       ├── MobaXtermSessionRow.cs   # Builds a session row (shared by both pages)
 │       └── MobaXtermIcons.cs        # Pick the row icon by protocol
 ├── tests/QuickJump.Tests/        # Pure-logic tests (xUnit), no VSCode needed

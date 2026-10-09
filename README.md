@@ -19,7 +19,8 @@ PowerToys Command Palette 扩展 —— 快速跳转到 VSCode 最近项目与 M
   这两段之间没有可比较的时间戳（VSCode 只存顺序不存时间），所以不揉成一条时间线。
   CmdPal 的列表页只能单列滚动，做不到左右分栏；文件太多时直接打字筛选，比滚更快
 - 另一个顶层命令 **MobaXterm**：搜索本机 MobaXterm 的 session（含目录层级），
-  回车用 `MobaXterm.exe -bookmark` 打开并自动登入该 session
+  回车用 `MobaXterm.exe -bookmark` 打开并自动登入该 session；同样支持在根搜索框
+  直接敲 session 名命中（见下）
 
 ## 安装
 
@@ -69,6 +70,14 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
   可在设置里关掉目录行，只列 session。
 - **搜索**：按名字 / 目录 / host 子串筛选。打目录名（如 `remote`）即筛出该目录下的全部会话，
   无论目录行开不开都有效。
+
+和 VSCode 一样，也可在**根搜索框**直接敲 session 名（至少 2 个字符），不必先进列表页：
+
+- **只有一条命中**：回车**直接连接**该 session，不经过列表页
+- **多条命中**：回车进入列表页，且搜索框已填好你敲的词，继续改即可
+
+> 与 VSCode 的回退项一样，它只在搜索框有输入时出现，且可在 Command Palette 的
+> **设置 → 回退命令**里单独开关、调整顺序。
 
 > 和 VSCode 一样，这是**顶层命令**。想让它更快，可在 Command Palette 设置里给它
 > 绑一个别名（Aliases）或热键 —— 例如像 VSCode 那样绑成单个字符。别名/热键是
@@ -253,6 +262,7 @@ tag 由 Release 步骤创建（发布时间也是这一步），所以某次构�
 │   ├── QuickJumpCommandsProvider.cs # 命令提供者（继承 Toolkit 的 CommandProvider）—— 各模块入口都在这
 │   ├── QuickJumpSettings.cs      # 扩展设置（JsonSettingsManager）
 │   ├── WindowActivation.cs          # 把外部程序窗口切到前台（最小化+还原）
+│   ├── FallbackItem.cs              # 根搜索回退项的共用骨架（两模块各用其一半）
 │   ├── VSCode/                      # VSCode 模块的全部代码
 │   │   ├── VSCodeInstall.cs         # VSCode 装在哪：位置探测（标准/便携/Scoop）
 │   │   ├── VSCodeHistory.cs   # 读取最近记录：枚举数据源、去重排序、缓存
@@ -275,6 +285,7 @@ tag 由 Release 步骤创建（发布时间也是这一步），所以某次构�
 │       ├── OpenInMobaXtermCommand.cs  # 用 MobaXterm 打开 session（只负责启动）
 │       ├── MobaXtermSessionListPage.cs  # MobaXterm session 列表页
 │       ├── MobaXtermFolderPage.cs   # 单个目录的会话子页（目录行点进去）
+│       ├── MobaXtermFallbackItem.cs # 根搜索内联命中项
 │       ├── MobaXtermSessionRow.cs   # session 行的构造（两页共用）
 │       └── MobaXtermIcons.cs        # 按协议选行图标
 ├── tests/QuickJump.Tests/        # 纯逻辑测试（xUnit），不需要 VSCode
