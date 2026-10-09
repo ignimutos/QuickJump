@@ -1,6 +1,6 @@
 @echo off
 setlocal
-REM VSCodeRecent one-shot dev entry point (ASCII only on purpose: cmd.exe reads
+REM QuickJump one-shot dev entry point (ASCII only on purpose: cmd.exe reads
 REM .cmd files in the OEM codepage, so non-ASCII comments would be mojibake).
 REM
 REM This wrapper works around two Windows-side gotchas:

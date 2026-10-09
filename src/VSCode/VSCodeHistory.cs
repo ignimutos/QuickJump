@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// 读取 VSCode 最近打开记录。
@@ -16,20 +16,20 @@ namespace VSCodeRecent.VSCode;
 /// <see cref="VSCodeUri"/> 判为无法本地打开而丢弃，界面上完全看不到它们，
 /// 诊断信息里也不体现。要修得先有能表达这类位置的模型。</para>
 /// </summary>
-internal sealed class VSCodeRecentHistory
+internal sealed class VSCodeHistory
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
-    private static VSCodeRecentHistory? _shared;
+    private static VSCodeHistory? _shared;
     private static readonly object SharedGate = new();
 
     /// <summary>页面和内联搜索共用一个实例，从而共用缓存。</summary>
-    public static VSCodeRecentHistory Shared
+    public static VSCodeHistory Shared
     {
         get
         {
             lock (SharedGate)
             {
-                return _shared ??= new VSCodeRecentHistory();
+                return _shared ??= new VSCodeHistory();
             }
         }
     }
@@ -47,7 +47,7 @@ internal sealed class VSCodeRecentHistory
     /// <summary>0 = 空闲，1 = 有后台刷新在跑。用 Interlocked 保证同一时刻只跑一个。</summary>
     private int _refreshing;
 
-    public VSCodeRecentHistory(VSCodeInstall? install = null) => _install = install ?? VSCodeInstall.Shared;
+    public VSCodeHistory(VSCodeInstall? install = null) => _install = install ?? VSCodeInstall.Shared;
 
     /// <summary>最近记录。默认走缓存（VSCode 刚打开的项目最迟一个 TTL 后出现）。</summary>
     public (IReadOnlyList<VSCodeItem> Items, bool Succeeded, string? Failure) Read(bool forceRefresh = false)

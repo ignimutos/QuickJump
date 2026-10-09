@@ -1,4 +1,4 @@
-namespace VSCodeRecent;
+namespace QuickJump;
 
 /// <summary>
 /// PATH 环境变量的解析 —— 「POSIX 路径列表 → 目录」与「Scoop shims 目录 → 其 root」

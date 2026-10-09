@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>VSCodeRecent</RootNamespace>
+    <RootNamespace>QuickJump</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <WindowsSdkPackageVersion>10.0.26100.84</WindowsSdkPackageVersion>
@@ -57,7 +57,7 @@
        路径推导（反斜杠转点），改目录名会悄悄改掉它，那会变成运行时找不到资源。 -->
   <ItemGroup>
     <EmbeddedResource Include="Assets\MaterialIcons\material-icons.json">
-      <LogicalName>VSCodeRecent.Assets.MaterialIcons.material-icons.json</LogicalName>
+      <LogicalName>QuickJump.Assets.MaterialIcons.material-icons.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -78,7 +78,7 @@
   -->
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>VSCodeRecent.Tests</_Parameter1>
+      <_Parameter1>QuickJump.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

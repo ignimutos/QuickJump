@@ -1,18 +1,18 @@
 using System.Diagnostics;
 
-using VSCodeRecent.VSCode;
-namespace VSCodeRecent.MobaXterm;
+using QuickJump.VSCode;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// 读取 MobaXterm session 列表。
 ///
-/// <para><b>与 <see cref="VSCodeRecentHistory"/> 同一骨架</b>（30s 缓存 + 后台单飞刷新 +
+/// <para><b>与 <see cref="VSCodeHistory"/> 同一骨架</b>（30s 缓存 + 后台单飞刷新 +
 /// 快照整体替换），但**不套 <see cref="IVSCodeHistorySource"/>** —— 那套接口的
 /// <c>SourceRead</c> 承载 <c>VSCodeItem</c>（含 MRU Order、去重、WSL 目标），而 session
 /// 是「一个配置文件里的树」，两者语义不同，硬套会把不存在的概念带进来。这里只保留
 /// 「失败是返回值的一部分」这条设计原则。</para>
 ///
-/// <para><b>本类不认识设置</b>（与 <see cref="VSCodeRecentHistory"/> 一致）—— 路径覆盖由
+/// <para><b>本类不认识设置</b>（与 <see cref="VSCodeHistory"/> 一致）—— 路径覆盖由
 /// 调用方通过参数传入，因此只依赖 BCL，测试里可直接引用而不会牵连 Toolkit。</para>
 ///
 /// <para>位置探测在 <see cref="MobaXtermInstall"/>，解析在 <see cref="MobaXtermIni"/>。</para>
@@ -69,7 +69,7 @@ internal sealed class MobaXtermSessions
     /// <summary>
     /// 后台读一次，完成后回调。同一时刻只跑一个，且已有刷新在跑时**不回调** ——
     /// 调用方要把回调当作「状态有变，去看看缓存」的提示。见
-    /// <see cref="VSCodeRecentHistory.RefreshInBackground"/> 的同名说明。
+    /// <see cref="VSCodeHistory.RefreshInBackground"/> 的同名说明。
     /// </summary>
     public void RefreshInBackground(string? iniOverride, Action onCompleted)
     {

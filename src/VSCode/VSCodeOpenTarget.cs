@@ -1,4 +1,4 @@
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// 打开目标。URI 只在这里解码、这里编码，不再压成 UNC 路径让别的模块靠前缀猜回来。

@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// 图标关联表的查找规则。表本身是随包发布的常量（嵌入资源），这些用例同时充当

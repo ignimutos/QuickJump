@@ -1,5 +1,5 @@
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// VSCode 记录里的 URI → <see cref="VSCodeOpenTarget"/>。全仓库只有这里碰 URI 的编解码。

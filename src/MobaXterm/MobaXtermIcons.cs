@@ -1,4 +1,4 @@
-namespace VSCodeRecent.MobaXterm;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// MobaXterm 列表用的图标（包内相对路径，喂给 <c>IconHelpers.FromRelativePath</c>）。

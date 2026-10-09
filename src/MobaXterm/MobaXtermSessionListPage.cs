@@ -1,21 +1,21 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace VSCodeRecent.MobaXterm;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// MobaXterm session 列表页。顶层命令 "MobaXterm Sessions" 回车后进入这里。
 ///
-/// <para>结构与 <c>VSCodeRecentListPage</c> 一致：<see cref="DynamicListPage"/> +
+/// <para>结构与 <c>VSCodeListPage</c> 一致：<see cref="DynamicListPage"/> +
 /// 页内子串筛选 + 加载态 + 后台刷新 + 诊断项。区别在于数据源、每行的图标，
 /// 以及「目录行」—— 点目录把筛选框填成该目录名，只留下该目录下的会话。</para>
 /// </summary>
 internal sealed partial class MobaXtermSessionListPage : DynamicListPage
 {
-    private readonly VSCodeRecentSettings _settings;
+    private readonly QuickJumpSettings _settings;
     private readonly MobaXtermSessions _sessions;
 
-    public MobaXtermSessionListPage(VSCodeRecentSettings settings, MobaXtermSessions sessions)
+    public MobaXtermSessionListPage(QuickJumpSettings settings, MobaXtermSessions sessions)
     {
         _settings = settings;
         _sessions = sessions;
@@ -47,7 +47,7 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
     public override void UpdateSearchText(string oldSearch, string newSearch) => RaiseItemsChanged();
 
     /// <summary>
-    /// 预填筛选框（与 <c>VSCodeRecentListPage.SetFixedQuery</c> 同一机制）：目录行点击后
+    /// 预填筛选框（与 <c>VSCodeListPage.SetFixedQuery</c> 同一机制）：目录行点击后
     /// 把框填成目录名。不另存状态 —— 是否处于「目录范围」由框里当前内容是否恰为目录名推导
     /// （见 <see cref="ExactFolder"/>），这样离开页面再进来不会残留上次的范围。
     /// </summary>

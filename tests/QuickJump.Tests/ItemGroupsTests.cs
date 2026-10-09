@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// 列表页的分组切割：项目一段、文件一段，空组不出现。

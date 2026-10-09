@@ -1,4 +1,4 @@
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>一条 VSCode 最近打开记录。</summary>
 internal sealed record VSCodeItem

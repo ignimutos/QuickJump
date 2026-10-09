@@ -1,4 +1,4 @@
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>VSCode 的一个存储位置。</summary>
 internal enum VSCodeStorageKind
@@ -28,7 +28,7 @@ internal sealed record VSCodeProbe(VSCodeStorageKind Kind, string Path, bool Exi
 internal sealed class VSCodeInstall
 {
     /// <summary>便携版数据的显式覆盖路径，指向 &lt;data&gt; 目录。</summary>
-    public const string PortableDataEnvVar = "VSCODERECENT_VSCODE_DATA";
+    public const string PortableDataEnvVar = "QUICKJUMP_VSCODE_DATA";
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
     private static readonly string[] PortableVariantNames = ["vscode", "vscode-insiders", "vscode-oss"];

@@ -1,6 +1,6 @@
-# VSCode Recent
+# QuickJump
 
-[![Build](https://github.com/ignimutos/VSCodeRecent/actions/workflows/build.yml/badge.svg)](https://github.com/ignimutos/VSCodeRecent/actions/workflows/build.yml)
+[![Build](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml/badge.svg)](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > Read this in other languages: [简体中文](./README.md)
@@ -25,13 +25,13 @@ A PowerToys Command Palette extension — quick access to recently opened VSCode
 ## Installation
 
 1. Grab the `.msix` for your architecture (`x64` or `ARM64`) from
-   [Releases](https://github.com/ignimutos/VSCodeRecent/releases)
+   [Releases](https://github.com/ignimutos/QuickJump/releases)
 2. Enable Developer Mode: Settings → System → For developers → Developer Mode
 3. Open PowerShell **as administrator** and `cd` to the folder holding the `.msix`
 4. Install:
 
 ```powershell
-Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
+Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 ```
 
 5. Open Command Palette and run `Reload Command Palette Extension`
@@ -49,7 +49,7 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
 
 1. Press `Win + Alt + Space` to open Command Palette (default; changable in Command Palette settings)
 2. **Scroll to the very bottom of the root list** — extension top-level commands come after the built-in ones. In compact mode, press `↓` or `Tab` first to expand the list
-3. Select **VSCode Recent** and press Enter
+3. Select **QuickJump** and press Enter
 4. Select a project and press Enter to open it in VSCode
 
 There is a faster path: type a project name (at least 2 characters) into the root search box.
@@ -76,9 +76,9 @@ The **MobaXterm Sessions** top-level command lists every session in the local `M
 - **Search**: filters by name, folder, or host substring. Typing a folder name (e.g. `remote`) shows
   every session in that folder, whether or not folder rows are shown.
 
-> Like VSCode Recent, this is a **top-level command**. For faster access, assign it an alias
+> Like QuickJump, this is a **top-level command**. For faster access, assign it an alias
 > (Aliases) or a hotkey in the Command Palette settings — for example a single character, as
-> VSCode Recent does. Aliases and hotkeys are host settings; an extension cannot declare them.
+> QuickJump does. Aliases and hotkeys are host settings; an extension cannot declare them.
 
 ## Settings
 
@@ -95,7 +95,7 @@ In the Command Palette extension settings you can configure:
   to list sessions only. Folder names are always searchable either way; this only controls whether
   a folder also gets its own row.
 
-Settings live in `%LOCALAPPDATA%\VSCodeRecent\settings.json`.
+Settings live in `%LOCALAPPDATA%\QuickJump\settings.json`.
 
 ## Requirements
 
@@ -158,7 +158,7 @@ dotnet restore -p:Platform=x64
 dotnet build -c Debug -p:Platform=x64
 ```
 
-Output: `AppPackages\VSCodeRecent_1.0.0.0_x64_Debug_Test\VSCodeRecent_1.0.0.0_x64_Debug.msix`
+Output: `AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix`
 
 If `dotnet build` does not produce a `.msix`, use the official publish recipe:
 
@@ -173,7 +173,7 @@ dotnet publish -c Debug -p:Platform=x64 `
 Install and test:
 
 ```powershell
-Add-AppxPackage -Path .\AppPackages\VSCodeRecent_1.0.0.0_x64_Debug_Test\VSCodeRecent_1.0.0.0_x64_Debug.msix -AllowUnsigned
+Add-AppxPackage -Path .\AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix -AllowUnsigned
 ```
 
 > Unsigned install requires the manifest `Publisher` to carry the Windows-reserved
@@ -187,7 +187,7 @@ After rebuilding, reinstall and run `Reload Command Palette Extension` from the 
 Uninstall:
 
 ```powershell
-Get-AppxPackage -Name "VSCodeRecent" | Remove-AppxPackage
+Get-AppxPackage -Name "QuickJump" | Remove-AppxPackage
 ```
 
 ## Publishing
@@ -205,7 +205,7 @@ git push origin v1.0.0
    (`v1.2.3` → `1.2.3.0`)
 2. Run the tests and build the `x64` and `ARM64` `.msix` packages on native x64 and arm64
    runners respectively
-3. Create a release and upload `VSCodeRecent-x64.msix` / `VSCodeRecent-ARM64.msix`
+3. Create a release and upload `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
 
 ### Publishing to the Microsoft Store
 
@@ -253,7 +253,7 @@ you later ship signed MSIX packages outside the Store. Two places must change:
 1. Set `Package.appxmanifest`'s `Publisher` to the certificate CN and remove
    `OID.2.25.311729368913984317654407730594956997722=1`
 2. Flip `<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>` to `true` in
-   `VSCodeRecent.csproj` and supply `PackageCertificateKeyFile` /
+   `QuickJump.csproj` and supply `PackageCertificateKeyFile` /
    `PackageCertificateThumbprint`
 
 Pick either **Azure Trusted Signing** (from $9.99/month, CI-friendly) or a traditional OV
@@ -263,25 +263,25 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 
 ```
 .
-├── VSCodeRecent.csproj              # Project file
+├── QuickJump.csproj              # Project file
 ├── Directory.Packages.props         # Central package version management
 ├── global.json                      # Pinned SDK version
 ├── Package.appxmanifest             # MSIX manifest (COM server + Command Palette registration)
 ├── app.manifest                     # Application manifest (DPI awareness)
 ├── src/
 │   ├── Program.cs                   # Entry point, COM server host
-│   ├── VSCodeRecentExtension.cs     # IExtension implementation (COM activation entry)
+│   ├── QuickJumpExtension.cs     # IExtension implementation (COM activation entry)
 │   ├── VSCodeCommandsProvider.cs    # Command provider (derives from Toolkit CommandProvider) — both entries live here
-│   ├── VSCodeRecentSettings.cs      # Extension settings (JsonSettingsManager)
+│   ├── QuickJumpSettings.cs      # Extension settings (JsonSettingsManager)
 │   ├── WindowActivation.cs          # Bring an external app's window to the foreground
-│   ├── VSCode/                      # All code for the VSCode Recent feature
+│   ├── VSCode/                      # All code for the QuickJump feature
 │   │   ├── VSCodeInstall.cs         # Where VSCode lives: location probes (standard / portable / Scoop)
-│   │   ├── VSCodeRecentHistory.cs   # VSCode history reader: sources, dedupe, sort, cache
+│   │   ├── VSCodeHistory.cs   # VSCode history reader: sources, dedupe, sort, cache
 │   │   ├── VSCodeHistorySource.cs   # One data source + JSON parsing rules (ParseHistoryKey)
 │   │   ├── VSCodeUri.cs             # VSCode URI → open target (decoded in exactly one place)
-│   │   ├── VSCodeRecentFallbackItem.cs  # Root-search inline fallback item
+│   │   ├── VSCodeFallbackItem.cs  # Root-search inline fallback item
 │   │   ├── OpenInVSCodeCommand.cs   # Open in VSCode (launching only)
-│   │   ├── VSCodeRecentListPage.cs  # Recent projects list page
+│   │   ├── VSCodeListPage.cs  # Recent projects list page
 │   │   ├── VSCodeItem.cs            # One recent entry
 │   │   ├── ItemKind.cs              # Kind: label / is-project / tie-break rank
 │   │   ├── ItemGroups.cs            # List-page grouping (projects / files)
@@ -296,7 +296,7 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 │       ├── MobaXtermSessionListPage.cs  # MobaXterm session list page
 │       ├── FilterToFolderCommand.cs # Folder row click: filter by folder
 │       └── MobaXtermIcons.cs        # Pick the row icon by protocol
-├── tests/VSCodeRecent.Tests/        # Pure-logic tests (xUnit), no VSCode needed
+├── tests/QuickJump.Tests/        # Pure-logic tests (xUnit), no VSCode needed
 └── Assets/                          # MSIX icon assets
     ├── MaterialIcons/               # File-name → colored icon (MIT, see its NOTICE.md)
     └── MobaIcons/                   # MobaXterm session-type icons (Tabler, MIT, see its NOTICE.md)
@@ -305,7 +305,7 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 ### Implementation Notes
 
 - The provider **must derive from** `Microsoft.CommandPalette.Extensions.Toolkit.CommandProvider`; do not hand-implement `ICommandProvider`. The base class supplies all the plumbing, and subclasses only `override TopLevelCommands()`.
-- The `[Guid]` in `VSCodeRecentExtension.cs` must match the COM `Class Id` in `Package.appxmanifest`.
+- The `[Guid]` in `QuickJumpExtension.cs` must match the COM `Class Id` in `Package.appxmanifest`.
 - This is an out-of-process WinRT/COM extension. It **cannot** be loaded the PowerToys Run `plugin.json` way.
 - The list page **must derive from `DynamicListPage`**, not `ListPage`: with a plain `ListPage` the host
   does the prefix fuzzy-matching and the page never sees the query. `SearchText` is the **single source

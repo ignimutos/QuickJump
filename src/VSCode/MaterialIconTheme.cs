@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// Material Icon Theme 的关联表，用来按文件名挑图标。
@@ -19,14 +19,14 @@ namespace VSCodeRecent.VSCode;
 internal sealed class MaterialIconTheme
 {
     /// <summary>与 csproj 里 EmbeddedResource 的默认命名一致。</summary>
-    private const string ResourceName = "VSCodeRecent.Assets.MaterialIcons.material-icons.json";
+    private const string ResourceName = "QuickJump.Assets.MaterialIcons.material-icons.json";
 
     private static MaterialIconTheme? _shared;
     private static readonly object SharedGate = new();
 
     /// <summary>
     /// 加载失败也不会抛：退回全部默认图标，列表还能用。
-    /// 加锁与另两个单例（<see cref="VSCodeRecentHistory"/>/<see cref="VSCodeInstall"/>）一致：
+    /// 加锁与另两个单例（<see cref="VSCodeHistory"/>/<see cref="VSCodeInstall"/>）一致：
     /// 后台预热与页面的 <c>GetItems</c> 会并发首次访问，无锁的 <c>??=</c> 会重复加载。
     /// </summary>
     public static MaterialIconTheme Shared

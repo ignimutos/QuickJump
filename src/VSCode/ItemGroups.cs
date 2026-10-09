@@ -1,4 +1,4 @@
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// 列表页要渲染的分组。纯函数，不碰渲染也不碰文件系统。
@@ -8,7 +8,7 @@ namespace VSCodeRecent.VSCode;
 /// 时间戳（VSCode 只存顺序，不存时间），所以它自己也分段展示。这里照做，
 /// 不假装能把两段揉成一条时间线。</para>
 ///
-/// <para>组内顺序沿用 <see cref="VSCodeRecentHistory.SortAndDedupe"/> 排好的顺序，
+/// <para>组内顺序沿用 <see cref="VSCodeHistory.SortAndDedupe"/> 排好的顺序，
 /// 本类只做切割。</para>
 /// </summary>
 internal static class ItemGroups

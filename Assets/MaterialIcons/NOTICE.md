@@ -31,7 +31,7 @@ PNG 已经过无损重压缩（`optipng -o7 -strip all` 再 `zopflipng -m`），
    "identify or promote your own product, service, application, VS Code extension"，
    而 `microsoft/vscode` 的 MIT 只覆盖代码、不含商标授权。这七个原本指向它的
    fileName / extension 规则改指 `folder-open`，工作区行也统一用 `folder-open`。
-   见 `Pages/VSCodeRecentListPage.cs` 的 `IconFor`。
+   见 `Pages/VSCodeListPage.cs` 的 `IconFor`。
 2. **只保留 587 个图标。** 主题全量有 1251 个 SVG，但裁出的关联表只引用到 587 个，
    其余（各框架/厂商的专属图标）在本扩展的三档 `ItemKind` 下永远取不到，
    已删除以免仓库白白多出 5 MB。

@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.MobaXterm;
+using QuickJump.MobaXterm;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>session 搜索与启动参数拼接（纯逻辑，不碰文件系统、不加载 Toolkit）。</summary>
 public class MobaXtermSessionTests

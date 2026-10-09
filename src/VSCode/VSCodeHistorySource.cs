@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// 一个数据源读完之后的结果：读到什么，以及这个来源本身健不健康。
@@ -317,7 +317,7 @@ internal static class ParseHistoryKey
     private static VSCodeItem? Resolve(string? uri, ItemKind kind, int order = 0)
     {
         // 解析不出本机目标的（ssh-remote / dev-container）目前只能丢掉。
-        // 见 VSCodeRecentHistory 的类注释：这些条目在界面上看不见，是已知缺口。
+        // 见 VSCodeHistory 的类注释：这些条目在界面上看不见，是已知缺口。
         if (VSCodeUri.Parse(uri, out _) is not { } target)
         {
             return null;

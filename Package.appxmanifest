@@ -15,12 +15,12 @@
     将来做代码签名（上架/分发）时，把这个 OID 去掉，换回与证书匹配的 CN。
   -->
   <Identity
-    Name="VSCodeRecent"
+    Name="QuickJump"
     Publisher="CN=ignimutos, OID.2.25.311729368913984317654407730594956997722=1"
     Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>VSCode Recent</DisplayName>
+    <DisplayName>QuickJump</DisplayName>
     <PublisherDisplayName>ignimutos</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -39,7 +39,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="VSCode Recent"
+        DisplayName="QuickJump"
         Description="快速访问 VSCode 最近打开的项目和文件"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -50,16 +50,16 @@
       <Extensions>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
-            <com:ExeServer Executable="VSCodeRecent.exe" Arguments="-RegisterProcessAsComServer" DisplayName="VSCode Recent">
-              <com:Class Id="A5F9B8E3-C4D2-A1F0-E9B8-C7D6E5F4A3B2" DisplayName="VSCode Recent" />
+            <com:ExeServer Executable="QuickJump.exe" Arguments="-RegisterProcessAsComServer" DisplayName="QuickJump">
+              <com:Class Id="A5F9B8E3-C4D2-A1F0-E9B8-C7D6E5F4A3B2" DisplayName="QuickJump" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
         <uap3:Extension Category="windows.appExtension">
           <uap3:AppExtension Name="com.microsoft.commandpalette"
-            Id="VSCodeRecent"
+            Id="QuickJump"
             PublicFolder="Public"
-            DisplayName="VSCode Recent"
+            DisplayName="QuickJump"
             Description="快速访问 VSCode 最近打开的项目和文件">
             <uap3:Properties>
               <CmdPalProvider>

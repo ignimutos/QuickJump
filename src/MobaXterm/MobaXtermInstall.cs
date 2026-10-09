@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.MobaXterm;
+namespace QuickJump.MobaXterm;
 
 /// <summary>一个探测到的 MobaXterm 相关位置及其存在情况。</summary>
 internal sealed record MobaXtermProbe(string Kind, string Path, bool Exists);
@@ -19,10 +19,10 @@ internal sealed record MobaXtermProbe(string Kind, string Path, bool Exists);
 internal sealed class MobaXtermInstall
 {
     /// <summary>ini 路径的显式覆盖环境变量（与设置里的覆盖项等价）。</summary>
-    public const string IniEnvVar = "VSCODERECENT_MOBAXTERM_INI";
+    public const string IniEnvVar = "QUICKJUMP_MOBAXTERM_INI";
 
     /// <summary>exe 路径的显式覆盖环境变量。</summary>
-    public const string ExeEnvVar = "VSCODERECENT_MOBAXTERM_EXE";
+    public const string ExeEnvVar = "QUICKJUMP_MOBAXTERM_EXE";
 
     /// <summary>PATH 上可能的 MobaXterm 可执行文件。顺序即优先级。</summary>
     private static readonly string[] ExecutableNames = ["MobaXterm.exe", "mobaxterm.exe"];

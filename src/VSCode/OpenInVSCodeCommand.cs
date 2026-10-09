@@ -1,7 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
 /// 在 VSCode 中打开一个最近项目。
@@ -15,9 +15,9 @@ internal sealed partial class OpenInVSCodeCommand : InvokableCommand
     private const string CodeProcessName = "Code";
 
     private readonly VSCodeOpenTarget _target;
-    private readonly VSCodeRecentSettings _settings;
+    private readonly QuickJumpSettings _settings;
 
-    public OpenInVSCodeCommand(VSCodeOpenTarget target, VSCodeRecentSettings settings)
+    public OpenInVSCodeCommand(VSCodeOpenTarget target, QuickJumpSettings settings)
     {
         _target = target;
         _settings = settings;

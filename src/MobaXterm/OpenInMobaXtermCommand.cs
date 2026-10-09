@@ -1,8 +1,8 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-using VSCodeRecent.VSCode;
-namespace VSCodeRecent.MobaXterm;
+using QuickJump.VSCode;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// 用 MobaXterm 打开一个 session（<c>-bookmark "User sessions\...\name"</c>），
@@ -19,11 +19,11 @@ internal sealed partial class OpenInMobaXtermCommand : InvokableCommand
 
     private readonly MobaXtermSession _session;
     private readonly MobaXtermInstall _install;
-    private readonly VSCodeRecentSettings _settings;
+    private readonly QuickJumpSettings _settings;
 
     public OpenInMobaXtermCommand(
         MobaXtermSession session,
-        VSCodeRecentSettings settings,
+        QuickJumpSettings settings,
         MobaXtermInstall? install = null)
     {
         _session = session;

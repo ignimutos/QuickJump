@@ -1,10 +1,10 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace VSCodeRecent.VSCode;
+namespace QuickJump.VSCode;
 
 /// <summary>
-/// 最近项目列表页。顶层命令 "VSCode Recent" 回车后进入这里。
+/// 最近项目列表页。顶层命令 "QuickJump" 回车后进入这里。
 ///
 /// 页面自己持有设置与读取器 —— 之前是靠把「显示文件」推进读取器的单例来生效，
 /// 页面不认识自己的设置；现在取值随每次调用进来，读取器只管缓存。
@@ -14,12 +14,12 @@ namespace VSCodeRecent.VSCode;
 /// <see cref="UpdateSearchText"/>，页面自己筛。本页要按子串匹配（直接打项目名就能命中），
 /// 而且要能清空筛选，所以必须自己接管。</para>
 /// </summary>
-internal sealed partial class VSCodeRecentListPage : DynamicListPage
+internal sealed partial class VSCodeListPage : DynamicListPage
 {
-    private readonly VSCodeRecentSettings _settings;
-    private readonly VSCodeRecentHistory _history;
+    private readonly QuickJumpSettings _settings;
+    private readonly VSCodeHistory _history;
 
-    public VSCodeRecentListPage(VSCodeRecentSettings settings, VSCodeRecentHistory history)
+    public VSCodeListPage(QuickJumpSettings settings, VSCodeHistory history)
     {
         _settings = settings;
         _history = history;
@@ -27,7 +27,7 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
         // 页面级别的插件图标保留 —— 这是进入页面后唯一能看出是哪个插件的地方。
         // 去掉的是每一行记录的类型图标（那个由 Command.Icon 回退而来，已一并清理）。
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
-        Title = "VSCode Recent";
+        Title = "QuickJump";
         Name = "Open";
 
         // 改设置后列表要重建，否则开关不生效（Item 列表刷新靠 ItemsChanged）。
@@ -99,7 +99,7 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
 
         // 页内搜索：这里显式按子串匹配，便于直接打项目名命中。
         var query = SearchText?.Trim();
-        var matched = VSCodeRecentHistory.Search(all, query, IncludeFiles);
+        var matched = VSCodeHistory.Search(all, query, IncludeFiles);
 
         if (matched.Count == 0)
         {

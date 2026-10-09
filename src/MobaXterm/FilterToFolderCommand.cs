@@ -1,7 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace VSCodeRecent.MobaXterm;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// 目录行被选中时，把筛选框填成该目录名 —— 页面据「查询词恰为目录名」只列该目录的

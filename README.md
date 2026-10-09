@@ -1,6 +1,6 @@
-# VSCode Recent
+# QuickJump
 
-[![Build](https://github.com/ignimutos/VSCodeRecent/actions/workflows/build.yml/badge.svg)](https://github.com/ignimutos/VSCodeRecent/actions/workflows/build.yml)
+[![Build](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml/badge.svg)](https://github.com/ignimutos/QuickJump/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > 切换语言：[English](./README_en.md)
@@ -22,13 +22,13 @@ PowerToys Command Palette 扩展 —— 快速访问 VSCode 最近打开的项�
 
 ## 安装
 
-1. 到 [Releases](https://github.com/ignimutos/VSCodeRecent/releases) 下载对应架构的 `.msix`（`x64` 或 `ARM64`）
+1. 到 [Releases](https://github.com/ignimutos/QuickJump/releases) 下载对应架构的 `.msix`（`x64` 或 `ARM64`）
 2. 开启开发者模式：设置 → 系统 → 开发者选项 → 开发人员模式
 3. **用管理员身份**打开 PowerShell，进到 `.msix` 所在目录
 4. 安装：
 
 ```powershell
-Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
+Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 ```
 
 5. 打开 Command Palette，运行 `Reload Command Palette Extension`
@@ -44,7 +44,7 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
 
 1. `Win + Alt + Space` 打开 Command Palette（默认快捷键，可在 Command Palette 设置里改）
 2. **滚到根列表最末尾** —— 扩展的顶层命令排在系统命令之后；若开了紧凑模式，先按 `↓` 或 `Tab` 展开列表
-3. 选择 **VSCode Recent** 回车进入列表页
+3. 选择 **QuickJump** 回车进入列表页
 4. 选中项目回车，在 VSCode 中打开
 
 更快的一条路：在根搜索框直接敲项目名（至少 2 个字符）。扩展会以回退项的形式出现在结果里 ——
@@ -67,8 +67,8 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
 - **搜索**：按名字 / 目录 / host 子串筛选。打目录名（如 `remote`）即筛出该目录下的全部会话，
   无论目录行开不开都有效。
 
-> 和 VSCode Recent 一样，这是**顶层命令**。想让它更快，可在 Command Palette 设置里给它
-> 绑一个别名（Aliases）或热键 —— 例如像 VSCode Recent 那样绑成单个字符。别名/热键是
+> 和 QuickJump 一样，这是**顶层命令**。想让它更快，可在 Command Palette 设置里给它
+> 绑一个别名（Aliases）或热键 —— 例如像 QuickJump 那样绑成单个字符。别名/热键是
 > 宿主的设置项，扩展自己不能声明快捷键。
 
 ## 设置
@@ -84,7 +84,7 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
 - **显示目录**（默认开）—— MobaXterm 列表里是否显示目录行。关掉则只列 session。
   目录行本身随时可搜（打目录名即筛出该目录下的会话），此开关只控制它是否单独占一行。
 
-设置存在 `%LOCALAPPDATA%\VSCodeRecent\settings.json`。
+设置存在 `%LOCALAPPDATA%\QuickJump\settings.json`。
 
 ## 系统要求
 
@@ -144,7 +144,7 @@ dotnet restore -p:Platform=x64
 dotnet build -c Debug -p:Platform=x64
 ```
 
-产物：`AppPackages\VSCodeRecent_1.0.0.0_x64_Debug_Test\VSCodeRecent_1.0.0.0_x64_Debug.msix`
+产物：`AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix`
 
 如果 `dotnet build` 没有生成 `.msix`，改用官方 recipe 手动 publish：
 
@@ -159,7 +159,7 @@ dotnet publish -c Debug -p:Platform=x64 `
 安装并测试：
 
 ```powershell
-Add-AppxPackage -Path .\AppPackages\VSCodeRecent_1.0.0.0_x64_Debug_Test\VSCodeRecent_1.0.0.0_x64_Debug.msix -AllowUnsigned
+Add-AppxPackage -Path .\AppPackages\QuickJump_1.0.0.0_x64_Debug_Test\QuickJump_1.0.0.0_x64_Debug.msix -AllowUnsigned
 ```
 
 > 未签名安装需要 `Package.appxmanifest` 的 `Publisher` 里带上 Windows 保留的
@@ -172,7 +172,7 @@ Add-AppxPackage -Path .\AppPackages\VSCodeRecent_1.0.0.0_x64_Debug_Test\VSCodeRe
 卸载：
 
 ```powershell
-Get-AppxPackage -Name "VSCodeRecent" | Remove-AppxPackage
+Get-AppxPackage -Name "QuickJump" | Remove-AppxPackage
 ```
 
 ## 发布
@@ -188,7 +188,7 @@ git push origin v1.0.0
 
 1. 从 tag 解析版本号，覆写 `Package.appxmanifest` 的 `Version`（`v1.2.3` → `1.2.3.0`）
 2. 在 x64 与 arm64 两个原生 runner 上各跑测试并构建 `x64` / `ARM64` 两个 `.msix`
-3. 建 Release 并上传 `VSCodeRecent-x64.msix` / `VSCodeRecent-ARM64.msix`
+3. 建 Release 并上传 `QuickJump-x64.msix` / `QuickJump-ARM64.msix`
 
 ### 发布到 Microsoft Store
 
@@ -227,32 +227,32 @@ git push origin v1.0.0
 届时同步改两处：
 
 1. `Package.appxmanifest` 的 `Publisher` 改成证书的 CN，删掉 `OID.2.25.311729368913984317654407730594956997722=1`
-2. `VSCodeRecent.csproj` 的 `<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>` 改为 `true`，
+2. `QuickJump.csproj` 的 `<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>` 改为 `true`，
    并给 `PackageCertificateKeyFile` / `PackageCertificateThumbprint`
 
 ## 项目结构
 
 ```
 .
-├── VSCodeRecent.csproj              # 项目文件
+├── QuickJump.csproj              # 项目文件
 ├── Directory.Packages.props         # 集中式包版本管理
 ├── global.json                      # SDK 版本固定
 ├── Package.appxmanifest             # MSIX 清单（COM 服务器 + Command Palette 扩展注册）
 ├── app.manifest                     # 应用清单（DPI 感知）
 ├── src/
 │   ├── Program.cs                   # 入口点，COM 服务器宿主
-│   ├── VSCodeRecentExtension.cs     # IExtension 实现（COM 激活入口）
+│   ├── QuickJumpExtension.cs     # IExtension 实现（COM 激活入口）
 │   ├── VSCodeCommandsProvider.cs    # 命令提供者（继承 Toolkit 的 CommandProvider）—— 两个入口都在这
-│   ├── VSCodeRecentSettings.cs      # 扩展设置（JsonSettingsManager）
+│   ├── QuickJumpSettings.cs      # 扩展设置（JsonSettingsManager）
 │   ├── WindowActivation.cs          # 把外部程序窗口切到前台（最小化+还原）
-│   ├── VSCode/                      # VSCode Recent 功能的全部代码
+│   ├── VSCode/                      # QuickJump 功能的全部代码
 │   │   ├── VSCodeInstall.cs         # VSCode 装在哪：位置探测（标准/便携/Scoop）
-│   │   ├── VSCodeRecentHistory.cs   # 读取最近记录：枚举数据源、去重排序、缓存
+│   │   ├── VSCodeHistory.cs   # 读取最近记录：枚举数据源、去重排序、缓存
 │   │   ├── VSCodeHistorySource.cs   # 单个数据源 + JSON 解析规则（ParseHistoryKey）
 │   │   ├── VSCodeUri.cs             # VSCode URI → 打开目标（只在这里解一次码）
-│   │   ├── VSCodeRecentFallbackItem.cs  # 根搜索内联命中项
+│   │   ├── VSCodeFallbackItem.cs  # 根搜索内联命中项
 │   │   ├── OpenInVSCodeCommand.cs   # 在 VSCode 中打开（只负责启动）
-│   │   ├── VSCodeRecentListPage.cs  # 最近项目列表页
+│   │   ├── VSCodeListPage.cs  # 最近项目列表页
 │   │   ├── VSCodeItem.cs            # 一条最近记录
 │   │   ├── ItemKind.cs              # 类型：显示名/是否算项目/并列兜底顺序
 │   │   ├── ItemGroups.cs            # 列表页分组切割（项目 / 文件）
@@ -267,7 +267,7 @@ git push origin v1.0.0
 │       ├── MobaXtermSessionListPage.cs  # MobaXterm session 列表页
 │       ├── FilterToFolderCommand.cs # 目录行点击：按目录筛选
 │       └── MobaXtermIcons.cs        # 按协议选行图标
-├── tests/VSCodeRecent.Tests/        # 纯逻辑测试（xUnit），不需要 VSCode
+├── tests/QuickJump.Tests/        # 纯逻辑测试（xUnit），不需要 VSCode
 └── Assets/                          # MSIX 图标资源
     ├── MaterialIcons/               # 按文件名关联的彩色图标（MIT，见其 NOTICE.md）
     └── MobaIcons/                   # MobaXterm 会话类型图标（Tabler，MIT，见其 NOTICE.md）
@@ -276,7 +276,7 @@ git push origin v1.0.0
 ### 测试
 
 ```powershell
-dotnet test tests\VSCodeRecent.Tests\VSCodeRecent.Tests.csproj -p:Platform=x64
+dotnet test tests\QuickJump.Tests\QuickJump.Tests.csproj -p:Platform=x64
 ```
 
 覆盖 URI 解析、JSON 解析、过滤、排序与分组 —— 这些都不碰文件系统，所以不需要装 VSCode 或
@@ -289,7 +289,7 @@ CI（`.github/workflows/build.yml`）会在两个平台上各跑一遍：`x64` �
 ### 实现要点
 
 - 提供者**必须继承** `Microsoft.CommandPalette.Extensions.Toolkit.CommandProvider`，不要手写 `ICommandProvider` 接口 —— 基类负责实现全部胶水成员，子类只需 `override TopLevelCommands()`。
-- `VSCodeRecentExtension.cs` 的 `[Guid]` 必须与 `Package.appxmanifest` 里的 COM `Class Id` 一致。
+- `QuickJumpExtension.cs` 的 `[Guid]` 必须与 `Package.appxmanifest` 里的 COM `Class Id` 一致。
 - 这是 WinRT/COM 进程外扩展，**不能用 PowerToys Run 的 `plugin.json` 方式加载**。
 - URI 解码**只用 `Uri.UnescapeDataString`，不要用 `HttpUtility.UrlDecode`** —— 后者是表单编码语义，会把路径里的 `+` 当空格吃掉。
 - PATH 上的 `code` 命令枚举**只有 `VSCodeInstall.CodeExecutableNames` 一份**，启动与便携版探测共用，避免两处清单漂移。

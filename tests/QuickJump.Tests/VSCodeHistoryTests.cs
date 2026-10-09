@@ -1,12 +1,12 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// 过滤、排序、去重。都是纯函数，不碰文件系统。
 /// </summary>
-public class VSCodeRecentHistoryTests
+public class VSCodeHistoryTests
 {
     private static VSCodeItem Item(string path, ItemKind kind, int order) => new()
     {
@@ -28,7 +28,7 @@ public class VSCodeRecentHistoryTests
             Item(@"C:\a\x.code-workspace", ItemKind.Workspace, 2),
         ];
 
-        var filtered = VSCodeRecentHistory.Filter(items, includeFiles: false);
+        var filtered = VSCodeHistory.Filter(items, includeFiles: false);
 
         Assert.Equal([ItemKind.Folder, ItemKind.Workspace], filtered.Select(i => i.Kind));
     }
@@ -42,7 +42,7 @@ public class VSCodeRecentHistoryTests
             Item(@"C:\a\proj", ItemKind.Folder, 1),
         ];
 
-        Assert.Equal(2, VSCodeRecentHistory.Filter(items, includeFiles: true).Count);
+        Assert.Equal(2, VSCodeHistory.Filter(items, includeFiles: true).Count);
     }
 
     /// <summary>Rank 只是 Order 并列时的兜底：工作区 → 文件夹 → 文件。</summary>
@@ -70,7 +70,7 @@ public class VSCodeRecentHistoryTests
             ]),
         };
 
-        var sorted = VSCodeRecentHistory.SortAndDedupe(reads);
+        var sorted = VSCodeHistory.SortAndDedupe(reads);
 
         Assert.Equal(
             [@"C:\a\recent", @"C:\a\older", @"C:\a\ws.code-workspace"],
@@ -90,7 +90,7 @@ public class VSCodeRecentHistoryTests
             SourceRead.Ok([Item(@"C:\a\second", ItemKind.Folder, 0)]),
         };
 
-        var sorted = VSCodeRecentHistory.SortAndDedupe(reads);
+        var sorted = VSCodeHistory.SortAndDedupe(reads);
 
         Assert.Equal([@"C:\a\first", @"C:\a\second"], sorted.Select(i => i.Path));
     }
@@ -105,7 +105,7 @@ public class VSCodeRecentHistoryTests
             SourceRead.Ok([Item(@"C:\a\dup", ItemKind.Folder, 0)]),
         };
 
-        var sorted = VSCodeRecentHistory.SortAndDedupe(reads);
+        var sorted = VSCodeHistory.SortAndDedupe(reads);
 
         var item = Assert.Single(sorted);
         Assert.Equal(4, item.Order);
@@ -121,7 +121,7 @@ public class VSCodeRecentHistoryTests
             SourceRead.Ok([Item(@"c:\a\DUP", ItemKind.Folder, 0)]),
         };
 
-        Assert.Single(VSCodeRecentHistory.SortAndDedupe(reads));
+        Assert.Single(VSCodeHistory.SortAndDedupe(reads));
     }
 
     /// <summary>读失败的来源不贡献条目，但不影响其它来源排序。</summary>
@@ -138,7 +138,7 @@ public class VSCodeRecentHistoryTests
             ]),
         };
 
-        var sorted = VSCodeRecentHistory.SortAndDedupe(reads);
+        var sorted = VSCodeHistory.SortAndDedupe(reads);
 
         Assert.Equal([@"C:\a\a", @"C:\a\b"], sorted.Select(i => i.Path));
     }
@@ -150,15 +150,15 @@ public class VSCodeRecentHistoryTests
         IReadOnlyList<VSCodeItem> items =
         [
             Item(@"\\wsl.localhost\debian\root\git\misc", ItemKind.Folder, 0),
-            Item(@"\\wsl.localhost\debian\root\git\VSCodeRecent", ItemKind.Folder, 1),
+            Item(@"\\wsl.localhost\debian\root\git\QuickJump", ItemKind.Folder, 1),
         ];
 
         Assert.Equal(
             [@"\\wsl.localhost\debian\root\git\misc"],
-            VSCodeRecentHistory.Search(items, "misc", includeFiles: false).Select(i => i.Path));
+            VSCodeHistory.Search(items, "misc", includeFiles: false).Select(i => i.Path));
         Assert.Equal(
-            [@"\\wsl.localhost\debian\root\git\VSCodeRecent"],
-            VSCodeRecentHistory.Search(items, "vscoderecent", includeFiles: false).Select(i => i.Path));
+            [@"\\wsl.localhost\debian\root\git\QuickJump"],
+            VSCodeHistory.Search(items, "quickjump", includeFiles: false).Select(i => i.Path));
     }
 
     /// <summary>空查询返回全部（受「显示文件」过滤），不清空列表。</summary>
@@ -171,8 +171,8 @@ public class VSCodeRecentHistoryTests
             Item(@"C:\a\proj", ItemKind.Folder, 1),
         ];
 
-        Assert.Single(VSCodeRecentHistory.Search(items, null, includeFiles: false));
-        Assert.Equal(2, VSCodeRecentHistory.Search(items, "  ", includeFiles: true).Count);
+        Assert.Single(VSCodeHistory.Search(items, null, includeFiles: false));
+        Assert.Equal(2, VSCodeHistory.Search(items, "  ", includeFiles: true).Count);
     }
 
     [Fact]

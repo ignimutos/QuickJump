@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// JSON 解析。这些用例以前一个都写不出来 —— 解析逻辑内嵌在直接读文件系统的

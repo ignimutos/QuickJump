@@ -1,9 +1,9 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using VSCodeRecent.MobaXterm;
-using VSCodeRecent.VSCode;
+using QuickJump.MobaXterm;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent;
+namespace QuickJump;
 
 /// <summary>
 /// 命令提供者。注意：不要手写 ICommandProvider 接口 —— 必须继承 Toolkit 的
@@ -17,17 +17,17 @@ public partial class VSCodeCommandsProvider : CommandProvider
 {
     private readonly ICommandItem[] _commands;
     private readonly IFallbackCommandItem[] _fallbacks;
-    private readonly VSCodeRecentSettings _settings = new();
+    private readonly QuickJumpSettings _settings = new();
 
     public VSCodeCommandsProvider()
     {
-        DisplayName = "VSCode Recent";
+        DisplayName = "QuickJump";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
 
-        var history = VSCodeRecentHistory.Shared;
-        var listPage = new VSCodeRecentListPage(_settings, history);
+        var history = VSCodeHistory.Shared;
+        var listPage = new VSCodeListPage(_settings, history);
 
-        _fallbacks = [new VSCodeRecentFallbackItem(_settings, history, listPage)];
+        _fallbacks = [new VSCodeFallbackItem(_settings, history, listPage)];
 
         var mobaSessions = new MobaXtermSessions();
 
@@ -35,7 +35,7 @@ public partial class VSCodeCommandsProvider : CommandProvider
         [
             new CommandItem(listPage)
             {
-                Title = "VSCode Recent",
+                Title = "QuickJump",
                 Subtitle = "最近打开的 VSCode 项目",
             },
             new CommandItem(new MobaXtermSessionListPage(_settings, mobaSessions))

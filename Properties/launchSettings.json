@@ -1,10 +1,10 @@
 {
   "profiles": {
-    "VSCodeRecent (Package)": {
+    "QuickJump (Package)": {
       "commandName": "MsixPackage",
       "doNotLaunchApp": true
     },
-    "VSCodeRecent (Unpackaged)": {
+    "QuickJump (Unpackaged)": {
       "commandName": "Project"
     }
   }

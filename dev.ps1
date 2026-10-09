@@ -1,4 +1,4 @@
-﻿# VSCodeRecent 开发一键脚本：停止 → 打包 → 安装 → 校验 → 重启 Command Palette
+﻿# QuickJump 开发一键脚本：停止 → 打包 → 安装 → 校验 → 重启 Command Palette
 #
 # 用法（在仓库根目录）：
 #   .\dev.cmd                      # Debug + x64，完整流程
@@ -31,9 +31,9 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
-$PackageName = 'VSCodeRecent'
+$PackageName = 'QuickJump'
 $CmdPalProcess = 'Microsoft.CmdPal.UI'
-$ExtensionProcess = 'VSCodeRecent'
+$ExtensionProcess = 'QuickJump'
 
 function Write-Step([string]$Message) {
     Write-Host ''
@@ -89,7 +89,7 @@ function Start-CmdPal {
     Start-Process "shell:AppsFolder\$aumid"
 }
 
-# 取 msix 包内 VSCodeRecent.dll 的 SHA256。
+# 取 msix 包内 QuickJump.dll 的 SHA256。
 #
 # 不能拿 bin 下的构建产物去比：发布流程会做 ReadyToRun 预编译
 # （pubxml 里 PublishReadyToRun=True），装进包里的是 obj\...\R2R\ 下那份
@@ -102,7 +102,7 @@ function Get-MsixDllHash {
     $zip = [System.IO.Compression.ZipFile]::OpenRead($MsixPath)
     try {
         $entry = $zip.Entries |
-            Where-Object { $_.FullName -eq 'VSCodeRecent.dll' } |
+            Where-Object { $_.FullName -eq 'QuickJump.dll' } |
             Select-Object -First 1
         if (-not $entry) { return $null }
 
@@ -156,7 +156,7 @@ function Get-InstalledDllHash {
     $pkg = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue
     if (-not $pkg) { return $null }
 
-    $dll = Join-Path $pkg.InstallLocation 'VSCodeRecent.dll'
+    $dll = Join-Path $pkg.InstallLocation 'QuickJump.dll'
     if (-not (Test-Path $dll)) { return $null }
 
     return (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
@@ -164,8 +164,8 @@ function Get-InstalledDllHash {
 
 # 包数据目录（含 settings.json）。
 #
-# MSIX 把 %LOCALAPPDATA%\VSCodeRecent\settings.json 重定向到
-# %LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\VSCodeRecent 下，而这个目录会
+# MSIX 把 %LOCALAPPDATA%\QuickJump\settings.json 重定向到
+# %LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\QuickJump 下，而这个目录会
 # 随卸载一起被删。
 #
 # 不能用 Remove-AppxPackage -PreserveApplicationData 保它：那个开关只对「以开发人员
@@ -178,16 +178,16 @@ function Save-PackageData {
         Select-Object -First 1).PackageFamilyName
 
     if ($pfn) {
-        $dir = Join-Path $env:LOCALAPPDATA "Packages\$pfn\LocalCache\Local\VSCodeRecent"
+        $dir = Join-Path $env:LOCALAPPDATA "Packages\$pfn\LocalCache\Local\QuickJump"
     } else {
         $dir = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter "$PackageName`_*" -ErrorAction SilentlyContinue |
             Select-Object -First 1 |
-            ForEach-Object { Join-Path $_.FullName 'LocalCache\Local\VSCodeRecent' }
+            ForEach-Object { Join-Path $_.FullName 'LocalCache\Local\QuickJump' }
     }
 
     if (-not $dir -or -not (Test-Path $dir)) { return $null }
 
-    $backup = Join-Path $env:TEMP ("VSCodeRecent-data-" + [Guid]::NewGuid().ToString('N'))
+    $backup = Join-Path $env:TEMP ("QuickJump-data-" + [Guid]::NewGuid().ToString('N'))
     Copy-Item -LiteralPath $dir -Destination $backup -Recurse -Force
     return [pscustomobject]@{ Dir = $dir; Backup = $backup }
 }
@@ -281,7 +281,7 @@ Write-Step "编译并打包 ($Configuration / $Platform)"
 dotnet build -c $Configuration -p:Platform=$Platform
 if ($LASTEXITCODE -ne 0) { throw "dotnet build 失败" }
 
-# 产物名形如 AppPackages\VSCodeRecent_<ver>_<plat>_<cfg>_Test\VSCodeRecent_<ver>_<plat>_<cfg>.msix
+# 产物名形如 AppPackages\QuickJump_<ver>_<plat>_<cfg>_Test\QuickJump_<ver>_<plat>_<cfg>.msix
 $msix = Get-ChildItem -Path 'AppPackages' -Recurse -Filter '*.msix' -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch '\\Dependencies\\' } |
     Sort-Object LastWriteTime -Descending |
@@ -291,7 +291,7 @@ if (-not $msix) { throw "没有找到 .msix，请检查 dotnet build 的输出" 
 Write-Host "  安装包: $($msix.Name)  ($($msix.LastWriteTime))"
 
 $msixHash = Get-MsixDllHash -MsixPath $msix.FullName
-if (-not $msixHash) { throw "msix 里没有 VSCodeRecent.dll" }
+if (-not $msixHash) { throw "msix 里没有 QuickJump.dll" }
 Write-Host "  包内 DLL: $($msixHash.Substring(0, 16))..."
 
 $msixVersion = Get-MsixVersion -MsixPath $msix.FullName

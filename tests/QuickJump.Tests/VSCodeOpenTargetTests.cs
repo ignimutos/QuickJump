@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// 打开目标生成命令行参数。WSL 的 distro 大小写规范就在这里落地：

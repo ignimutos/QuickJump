@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.VSCode;
+using QuickJump.VSCode;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// URI → 打开目标。用例全部来自旧 <c>ParseUri</c> 的行为，

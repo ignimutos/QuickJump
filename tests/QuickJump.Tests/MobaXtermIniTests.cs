@@ -1,7 +1,7 @@
 using Xunit;
-using VSCodeRecent.MobaXterm;
+using QuickJump.MobaXterm;
 
-namespace VSCodeRecent.Tests;
+namespace QuickJump.Tests;
 
 /// <summary>
 /// MobaXterm.ini 的 [Bookmarks*] 解析。全部只喂字符串，不碰文件系统 ——

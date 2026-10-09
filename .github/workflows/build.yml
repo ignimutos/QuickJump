@@ -53,7 +53,7 @@ jobs:
     # 纯逻辑测试（URI 解析、JSON 解析、过滤排序），不需要 VSCode 也不需要装扩展。
     # 放在打包前，逻辑坏了就别出包。两条腿各自原生跑，不需要特例。
     - name: Test
-      run: dotnet test tests/VSCodeRecent.Tests/VSCodeRecent.Tests.csproj -c Release -p:Platform=${{ matrix.platform }}
+      run: dotnet test tests/QuickJump.Tests/QuickJump.Tests.csproj -c Release -p:Platform=${{ matrix.platform }}
 
     - name: Build
       run: dotnet build -c Release -p:Platform=${{ matrix.platform }} --no-restore
@@ -76,13 +76,13 @@ jobs:
           Select-Object -First 1
         if (-not $msix) { throw "No MSIX produced by dotnet publish" }
         New-Item -ItemType Directory -Path staging -Force | Out-Null
-        Copy-Item $msix.FullName -Destination "staging/VSCodeRecent-${{ matrix.platform }}.msix"
-        Write-Host "Staged: staging/VSCodeRecent-${{ matrix.platform }}.msix"
+        Copy-Item $msix.FullName -Destination "staging/QuickJump-${{ matrix.platform }}.msix"
+        Write-Host "Staged: staging/QuickJump-${{ matrix.platform }}.msix"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7
       with:
-        name: VSCodeRecent-${{ matrix.platform }}
+        name: QuickJump-${{ matrix.platform }}
         path: staging/*.msix
 
   release:

@@ -1,6 +1,6 @@
 
-using VSCodeRecent.VSCode;
-namespace VSCodeRecent.MobaXterm;
+using QuickJump.VSCode;
+namespace QuickJump.MobaXterm;
 
 /// <summary>
 /// <c>MobaXterm.ini</c> 的 <c>[Bookmarks*]</c> 段解析。只吃字符串、不碰文件系统，

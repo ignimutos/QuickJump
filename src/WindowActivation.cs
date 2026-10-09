@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace VSCodeRecent;
+namespace QuickJump;
 
 /// <summary>
 /// 把外部程序的窗口切到前台。

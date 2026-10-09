@@ -3,7 +3,7 @@ using Microsoft.CommandPalette.Extensions;
 using Shmuelie.WinRTServer;
 using Shmuelie.WinRTServer.CsWinRT;
 
-namespace VSCodeRecent;
+namespace QuickJump;
 
 public class Program
 {
@@ -17,8 +17,8 @@ public class Program
             ManualResetEvent extensionDisposedEvent = new(false);
 
             // 只实例化一个扩展对象，之后宿主每次索取 IExtension 都返回同一个实例。
-            VSCodeRecentExtension extensionInstance = new(extensionDisposedEvent);
-            server.RegisterClass<VSCodeRecentExtension, IExtension>(() => extensionInstance);
+            QuickJumpExtension extensionInstance = new(extensionDisposedEvent);
+            server.RegisterClass<QuickJumpExtension, IExtension>(() => extensionInstance);
             server.Start();
 
             // 主线程阻塞，直到扩展对象被释放。

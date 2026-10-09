@@ -1,5 +1,5 @@
-using VSCodeRecent.VSCode;
-namespace VSCodeRecent.MobaXterm;
+using QuickJump.VSCode;
+namespace QuickJump.MobaXterm;
 
 /// <summary>MobaXterm session 的协议类型。只用来决定副标题文案与字段取法。</summary>
 internal enum MobaProtocol

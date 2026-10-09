@@ -1,15 +1,15 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace VSCodeRecent;
+namespace QuickJump;
 
 /// <summary>
-/// 扩展设置。持久化到 %LOCALAPPDATA%\VSCodeRecent\settings.json。
+/// 扩展设置。持久化到 %LOCALAPPDATA%\QuickJump\settings.json。
 /// </summary>
-internal sealed class VSCodeRecentSettings : JsonSettingsManager
+internal sealed class QuickJumpSettings : JsonSettingsManager
 {
     private static readonly string SettingsDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "VSCodeRecent");
+        "QuickJump");
 
     /// <summary>默认不显示文件 —— 最近记录里绝大多数是单独打开的文件，会淹没项目。</summary>
     public ToggleSetting ShowFiles { get; } = new(
@@ -52,7 +52,7 @@ internal sealed class VSCodeRecentSettings : JsonSettingsManager
         "在 MobaXterm session 列表里显示目录行（点击可筛选该目录）",
         true);
 
-    public VSCodeRecentSettings()
+    public QuickJumpSettings()
     {
         Directory.CreateDirectory(SettingsDir);
         FilePath = Path.Combine(SettingsDir, "settings.json");
