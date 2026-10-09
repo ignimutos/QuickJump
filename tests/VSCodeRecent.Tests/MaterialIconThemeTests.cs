@@ -1,5 +1,5 @@
-using VSCodeRecent.Models;
 using Xunit;
+using VSCodeRecent.VSCode;
 
 namespace VSCodeRecent.Tests;
 

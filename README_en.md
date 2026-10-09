@@ -18,6 +18,9 @@ A PowerToys Command Palette extension — quick access to recently opened VSCode
   the same split VSCode itself uses, since the two segments have no comparable timestamps
   (VSCode stores order, not time). CmdPal list pages are a single scrolling column, so side-by-side
   columns are not possible; when the file list is long, typing to filter beats scrolling
+- A second top-level command, **MobaXterm Sessions**: search the local MobaXterm sessions
+  (folder levels included), then press Enter to open one with `MobaXterm.exe -bookmark` and
+  log in to it
 
 ## Installation
 
@@ -59,10 +62,39 @@ The extension shows up in the results as a fallback item —
 > out of the root list, and a fallback must start empty or it wastes a row. So "see your projects with
 > an empty search box" is not possible.
 
+### MobaXterm Sessions
+
+The **MobaXterm Sessions** top-level command lists every session in the local `MobaXterm.ini`:
+
+- **Each row**: the session name as the title, the folder and `user@host:port` in the subtitle, and
+  a per-protocol icon (SSH / WSL / other). Enter opens it with
+  `MobaXterm.exe -bookmark "User sessions\<folder>\<name>"`, which makes MobaXterm log in to that
+  session.
+- **Folder rows** (shown by default): one row per folder that appears, with a folder icon. Clicking
+  it fills the filter box with the folder name, leaving only that folder's sessions (it starts
+  nothing). Turn it off in the settings to list sessions only.
+- **Search**: filters by name, folder, or host substring. Typing a folder name (e.g. `remote`) shows
+  every session in that folder, whether or not folder rows are shown.
+
+> Like VSCode Recent, this is a **top-level command**. For faster access, assign it an alias
+> (Aliases) or a hotkey in the Command Palette settings — for example a single character, as
+> VSCode Recent does. Aliases and hotkeys are host settings; an extension cannot declare them.
+
 ## Settings
 
-In the Command Palette extension settings, enable **Show files** (off by default). Most VSCode
-recent entries are individually opened files, so they are filtered out unless you opt in.
+In the Command Palette extension settings you can configure:
+
+- **Show files** (off by default) — most VSCode recent entries are individually opened files,
+  so they are filtered out unless you opt in.
+- **Activate on open** (on by default) — bring the VSCode / MobaXterm window to the foreground
+  after opening. A program launched by a background process opens behind by default; turn this
+  off to leave it in the background.
+- **MobaXterm.ini path** / **MobaXterm.exe path** (empty by default) — leave empty to
+  auto-detect (portable / Scoop / Documents / PATH); set them when detection fails.
+- **Show folders** (on by default) — whether to show folder rows in the MobaXterm list. Turn it off
+  to list sessions only. Folder names are always searchable either way; this only controls whether
+  a folder also gets its own row.
+
 Settings live in `%LOCALAPPDATA%\VSCodeRecent\settings.json`.
 
 ## Requirements
@@ -81,6 +113,23 @@ Searched in priority order, falling back at each step:
    - `%APPDATA%\Code\User\globalStorage\*\state.vscdb`
 3. **Legacy JSON format**
    - `%APPDATA%\Code\User\globalStorage\storage.json`
+
+## MobaXterm Data Location
+
+Sessions are plain text in the `[Bookmarks]` / `[Bookmarks_N]` sections of `MobaXterm.ini`,
+searched in this priority order (the first one that exists wins; a path override in the settings
+takes precedence over all of them):
+
+1. **Next to the executable** (portable) — `<exe dir>\MobaXterm.ini` or its parent
+2. **Scoop** — `<scoop root>\persist\mobaxterm\MobaXterm.ini`
+3. **Documents** (installed) — `%USERPROFILE%\Documents\MobaXterm\MobaXterm.ini`
+
+`MobaXterm.exe` is resolved in this order: settings override → PATH → Scoop
+`apps\mobaxterm\current` → a running MobaXterm process.
+
+> The session folder level comes from `SubRep`, and the `-bookmark` path is built as
+> `User sessions\<folder>\<name>`. Passwords live in the separate `[Passwords]` / `[Sesspass]`
+> sections (encrypted); this extension neither reads nor moves them.
 
 ## Development
 
@@ -219,25 +268,38 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 ├── global.json                      # Pinned SDK version
 ├── Package.appxmanifest             # MSIX manifest (COM server + Command Palette registration)
 ├── app.manifest                     # Application manifest (DPI awareness)
-├── Program.cs                       # Entry point, COM server host
-├── VSCodeRecentExtension.cs         # IExtension implementation (COM activation entry)
-├── VSCodeCommandsProvider.cs        # Command provider (derives from Toolkit CommandProvider)
-├── VSCodeInstall.cs                 # Where VSCode lives: location probes (standard / portable / Scoop)
-├── VSCodeRecentHistory.cs           # VSCode history reader: sources, dedupe, sort, cache
-├── VSCodeHistorySource.cs           # One data source + JSON parsing rules (ParseHistoryKey)
-├── VSCodeUri.cs                     # VSCode URI → open target (decoded in exactly one place)
-├── VSCodeRecentSettings.cs          # Extension settings (JsonSettingsManager)
-├── Commands/
-│   └── OpenInVSCodeCommand.cs       # Open in VSCode (launching only)
-├── Pages/
-│   └── VSCodeRecentListPage.cs      # Recent projects list page
-├── Models/
-│   ├── VSCodeItem.cs                # One recent entry
-│   ├── ItemKind.cs                  # Kind: label / is-project / tie-break rank
-│   ├── ItemGroups.cs                # List-page grouping (projects / files)
-│   └── VSCodeOpenTarget.cs          # Open target: local / WSL, command line + display path
+├── src/
+│   ├── Program.cs                   # Entry point, COM server host
+│   ├── VSCodeRecentExtension.cs     # IExtension implementation (COM activation entry)
+│   ├── VSCodeCommandsProvider.cs    # Command provider (derives from Toolkit CommandProvider) — both entries live here
+│   ├── VSCodeRecentSettings.cs      # Extension settings (JsonSettingsManager)
+│   ├── WindowActivation.cs          # Bring an external app's window to the foreground
+│   ├── VSCode/                      # All code for the VSCode Recent feature
+│   │   ├── VSCodeInstall.cs         # Where VSCode lives: location probes (standard / portable / Scoop)
+│   │   ├── VSCodeRecentHistory.cs   # VSCode history reader: sources, dedupe, sort, cache
+│   │   ├── VSCodeHistorySource.cs   # One data source + JSON parsing rules (ParseHistoryKey)
+│   │   ├── VSCodeUri.cs             # VSCode URI → open target (decoded in exactly one place)
+│   │   ├── VSCodeRecentFallbackItem.cs  # Root-search inline fallback item
+│   │   ├── OpenInVSCodeCommand.cs   # Open in VSCode (launching only)
+│   │   ├── VSCodeRecentListPage.cs  # Recent projects list page
+│   │   ├── VSCodeItem.cs            # One recent entry
+│   │   ├── ItemKind.cs              # Kind: label / is-project / tie-break rank
+│   │   ├── ItemGroups.cs            # List-page grouping (projects / files)
+│   │   ├── VSCodeOpenTarget.cs      # Open target: local / WSL, command line + display path
+│   │   └── MaterialIconTheme.cs     # File-name → colored icon (mapping embedded)
+│   └── MobaXterm/                   # All code for the MobaXterm Sessions feature
+│       ├── MobaXtermInstall.cs      # Where MobaXterm lives: ini/exe location probes
+│       ├── MobaXtermSessions.cs     # Session reader: cache + snapshot + background refresh
+│       ├── MobaXtermIni.cs          # MobaXterm.ini [Bookmarks*] parsing (pure function)
+│       ├── MobaXtermSession.cs      # One MobaXterm session (with its -bookmark path)
+│       ├── OpenInMobaXtermCommand.cs  # Open a session in MobaXterm (launching only)
+│       ├── MobaXtermSessionListPage.cs  # MobaXterm session list page
+│       ├── FilterToFolderCommand.cs # Folder row click: filter by folder
+│       └── MobaXtermIcons.cs        # Pick the row icon by protocol
 ├── tests/VSCodeRecent.Tests/        # Pure-logic tests (xUnit), no VSCode needed
 └── Assets/                          # MSIX icon assets
+    ├── MaterialIcons/               # File-name → colored icon (MIT, see its NOTICE.md)
+    └── MobaIcons/                   # MobaXterm session-type icons (Tabler, MIT, see its NOTICE.md)
 ```
 
 ### Implementation Notes
@@ -254,6 +316,30 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 - Do **not** insert `Separator`s for grouping yourself: the host groups by `IListItem.Section`, and an
   item only counts as a section header when its `Command` is empty. The Toolkit `Section` helper inserts
   the separator for you.
+- The MobaXterm data source does **not** use `IVSCodeHistorySource`: that interface's `SourceRead`
+  carries `VSCodeItem` (with MRU `Order`, dedupe, WSL targets), while a session is a tree in a config
+  file. `MobaXtermSessions` reuses only the refresh/cache **shape**, not its types.
+- A MobaXterm session's folder level comes **only from the `SubRep` string**; the `[Bookmarks_N]`
+  number does not take part in depth (no assumption that numbers are contiguous). `__PTVIRG__` is
+  the escape for a `;` inside a value.
+- Launching MobaXterm **starts the exe directly, without `cmd.exe`**: `OpenInVSCodeCommand` wraps cmd
+  only because `code` on PATH is a `.cmd` batch file. `MobaXterm.exe` is a real GUI program, so
+  wrapping it would expand `%` and add a window risk.
+- Open a session with **`-bookmark` alone, without `-newtab`**. Measured: `-bookmark` by itself
+  reuses a running MobaXterm (opening a new tab in its window) and starts one if none is running.
+  `-newtab` instead means "run the following command in a new tab" (docs: `-newtab ["<Command>"]`),
+  so appending `-bookmark ...` makes MobaXterm run it as a shell command — the tab prints a run of
+  `set -o` lines, then `/bin/bash: -c: option requires an argument`, and closes.
+- The path in the arguments **must be quoted as a whole** (`-bookmark "User sessions\ld\gateway"`):
+  the name contains a space, and without quotes it is split at the space, giving
+  `no bookmark folder "User"`.
+- **Bringing a window to the front needs minimize + restore, not a bare `SetForegroundWindow`.**
+  The extension is an out-of-process COM server, so it does not start in the foreground, and the
+  Windows foreground lock makes a plain `SetForegroundWindow` fail (measured: returns false);
+  `SwitchToThisWindow` fails too. `ShowWindow(SW_MINIMIZE)` + `ShowWindow(SW_RESTORE)` first
+  re-qualifies the window for activation, after which `SetForegroundWindow` works — see
+  `WindowActivation.cs`. Take a window snapshot before launching and activate only the newly
+  appeared window, so an unrelated window is never focused.
 
 ## License
 

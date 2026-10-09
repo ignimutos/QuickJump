@@ -1,4 +1,4 @@
-namespace VSCodeRecent.Models;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 一条最近记录的类型。用值而不是字符串 —— 排序权重、显示名、是否算「项目」

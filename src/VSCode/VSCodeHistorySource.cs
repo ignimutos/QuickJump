@@ -1,8 +1,7 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 一个数据源读完之后的结果：读到什么，以及这个来源本身健不健康。

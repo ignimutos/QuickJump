@@ -17,6 +17,8 @@ PowerToys Command Palette 扩展 —— 快速访问 VSCode 最近打开的项�
   **项目 (N)** / **文件 (N)** 两组（标题带条数），与 VSCode 自己的最近列表一致 ——
   这两段之间没有可比较的时间戳（VSCode 只存顺序不存时间），所以不揉成一条时间线。
   CmdPal 的列表页只能单列滚动，做不到左右分栏；文件太多时直接打字筛选，比滚更快
+- 另一个顶层命令 **MobaXterm Sessions**：搜索本机 MobaXterm 的 session（含目录层级），
+  回车用 `MobaXterm.exe -bookmark` 打开并自动登入该 session
 
 ## 安装
 
@@ -53,11 +55,36 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
 > 回退项只在搜索框有输入时出现（宿主规定：`Title` 为空的项不进根列表，而回退项平时必须
 > 是空的才不会白占一行），所以不能「空着搜索框就看到项目」。
 
+### MobaXterm Sessions
+
+顶层命令 **MobaXterm Sessions** 列出本机 `MobaXterm.ini` 里的全部 session：
+
+- **每行**：标题是 session 名，副标题带目录、`user@host:port`，图标按协议区分
+  （SSH / WSL / 其它）。回车用 `MobaXterm.exe -bookmark "User sessions\<目录>\<名字>"`
+  打开，MobaXterm 会据此自动登入。
+- **目录行**（默认显示）：每个出现过的目录占一行，图标是文件夹；**点它即把筛选框填成该目录名**，
+  只留下该目录下的会话（不启动任何东西）。可在设置里关掉，只列 session。
+- **搜索**：按名字 / 目录 / host 子串筛选。打目录名（如 `remote`）即筛出该目录下的全部会话，
+  无论目录行开不开都有效。
+
+> 和 VSCode Recent 一样，这是**顶层命令**。想让它更快，可在 Command Palette 设置里给它
+> 绑一个别名（Aliases）或热键 —— 例如像 VSCode Recent 那样绑成单个字符。别名/热键是
+> 宿主的设置项，扩展自己不能声明快捷键。
+
 ## 设置
 
-在 Command Palette 的扩展设置里可打开 **显示文件**（默认关）。VSCode 的最近记录里绝大多数是
-单独打开的文件，默认过滤掉，只留文件夹和工作区。设置存在
-`%LOCALAPPDATA%\VSCodeRecent\settings.json`。
+在 Command Palette 的扩展设置里可配：
+
+- **显示文件**（默认关）—— VSCode 的最近记录里绝大多数是单独打开的文件，默认过滤掉，
+  只留文件夹和工作区。
+- **打开后置于前台**（默认开）—— 打开 VSCode / MobaXterm 后把窗口切到前台。由后台进程
+  启动的程序默认开在背后，关掉此项可让它们留在后台。
+- **MobaXterm.ini 路径** / **MobaXterm.exe 路径**（默认空）—— 留空则自动探测（便携版 /
+  Scoop / 文档目录 / PATH）；探测不到时在此显式指定。
+- **显示目录**（默认开）—— MobaXterm 列表里是否显示目录行。关掉则只列 session。
+  目录行本身随时可搜（打目录名即筛出该目录下的会话），此开关只控制它是否单独占一行。
+
+设置存在 `%LOCALAPPDATA%\VSCodeRecent\settings.json`。
 
 ## 系统要求
 
@@ -75,6 +102,21 @@ Add-AppxPackage -Path .\VSCodeRecent-x64.msix -AllowUnsigned
    - `%APPDATA%\Code\User\globalStorage\*\state.vscdb`
 3. **传统 JSON 格式**（兼容旧版本）
    - `%APPDATA%\Code\User\globalStorage\storage.json`
+
+## MobaXterm 数据位置
+
+session 全部是 `MobaXterm.ini` 里 `[Bookmarks]` / `[Bookmarks_N]` 段的明文，按以下优先级
+查找（第一条存在的即用；设置里的路径覆盖优先于全部）：
+
+1. **exe 附近**（便携版）—— `<exe 目录>\MobaXterm.ini` 或上一级
+2. **Scoop** —— `<scoop root>\persist\mobaxterm\MobaXterm.ini`
+3. **文档目录**（安装版）—— `%USERPROFILE%\Documents\MobaXterm\MobaXterm.ini`
+
+`MobaXterm.exe` 的查找顺序：设置覆盖 → PATH → Scoop `apps\mobaxterm\current` →
+运行中的 MobaXterm 进程。
+
+> session 的目录层级来自 `SubRep`，`-bookmark` 路径拼成 `User sessions\<目录>\<名字>`。
+> 密码存在单独的 `[Passwords]` / `[Sesspass]` 里（加密），本扩展不读取也不搬运。
 
 ## 开发
 
@@ -197,25 +239,38 @@ git push origin v1.0.0
 ├── global.json                      # SDK 版本固定
 ├── Package.appxmanifest             # MSIX 清单（COM 服务器 + Command Palette 扩展注册）
 ├── app.manifest                     # 应用清单（DPI 感知）
-├── Program.cs                       # 入口点，COM 服务器宿主
-├── VSCodeRecentExtension.cs         # IExtension 实现（COM 激活入口）
-├── VSCodeCommandsProvider.cs        # 命令提供者（继承 Toolkit 的 CommandProvider）
-├── VSCodeInstall.cs                 # VSCode 装在哪：位置探测（标准/便携/Scoop）
-├── VSCodeRecentHistory.cs           # 读取最近记录：枚举数据源、去重排序、缓存
-├── VSCodeHistorySource.cs           # 单个数据源 + JSON 解析规则（ParseHistoryKey）
-├── VSCodeUri.cs                     # VSCode URI → 打开目标（只在这里解一次码）
-├── VSCodeRecentSettings.cs          # 扩展设置（JsonSettingsManager）
-├── Commands/
-│   └── OpenInVSCodeCommand.cs       # 在 VSCode 中打开（只负责启动）
-├── Pages/
-│   └── VSCodeRecentListPage.cs      # 最近项目列表页
-├── Models/
-│   ├── VSCodeItem.cs                # 一条最近记录
-│   ├── ItemKind.cs                  # 类型：显示名/是否算项目/并列兜底顺序
-│   ├── ItemGroups.cs                # 列表页分组切割（项目 / 文件）
-│   └── VSCodeOpenTarget.cs          # 打开目标：本地 / WSL，含命令行与显示路径
+├── src/
+│   ├── Program.cs                   # 入口点，COM 服务器宿主
+│   ├── VSCodeRecentExtension.cs     # IExtension 实现（COM 激活入口）
+│   ├── VSCodeCommandsProvider.cs    # 命令提供者（继承 Toolkit 的 CommandProvider）—— 两个入口都在这
+│   ├── VSCodeRecentSettings.cs      # 扩展设置（JsonSettingsManager）
+│   ├── WindowActivation.cs          # 把外部程序窗口切到前台（最小化+还原）
+│   ├── VSCode/                      # VSCode Recent 功能的全部代码
+│   │   ├── VSCodeInstall.cs         # VSCode 装在哪：位置探测（标准/便携/Scoop）
+│   │   ├── VSCodeRecentHistory.cs   # 读取最近记录：枚举数据源、去重排序、缓存
+│   │   ├── VSCodeHistorySource.cs   # 单个数据源 + JSON 解析规则（ParseHistoryKey）
+│   │   ├── VSCodeUri.cs             # VSCode URI → 打开目标（只在这里解一次码）
+│   │   ├── VSCodeRecentFallbackItem.cs  # 根搜索内联命中项
+│   │   ├── OpenInVSCodeCommand.cs   # 在 VSCode 中打开（只负责启动）
+│   │   ├── VSCodeRecentListPage.cs  # 最近项目列表页
+│   │   ├── VSCodeItem.cs            # 一条最近记录
+│   │   ├── ItemKind.cs              # 类型：显示名/是否算项目/并列兜底顺序
+│   │   ├── ItemGroups.cs            # 列表页分组切割（项目 / 文件）
+│   │   ├── VSCodeOpenTarget.cs      # 打开目标：本地 / WSL，含命令行与显示路径
+│   │   └── MaterialIconTheme.cs     # 按文件名查彩色图标（关联表内嵌）
+│   └── MobaXterm/                   # MobaXterm Sessions 功能的全部代码
+│       ├── MobaXtermInstall.cs      # MobaXterm 装在哪：ini/exe 位置探测
+│       ├── MobaXtermSessions.cs     # 读取 session：缓存 + 快照 + 后台刷新
+│       ├── MobaXtermIni.cs          # MobaXterm.ini 的 [Bookmarks*] 解析（纯函数）
+│       ├── MobaXtermSession.cs      # 一个 MobaXterm session（含 -bookmark 路径）
+│       ├── OpenInMobaXtermCommand.cs  # 用 MobaXterm 打开 session（只负责启动）
+│       ├── MobaXtermSessionListPage.cs  # MobaXterm session 列表页
+│       ├── FilterToFolderCommand.cs # 目录行点击：按目录筛选
+│       └── MobaXtermIcons.cs        # 按协议选行图标
 ├── tests/VSCodeRecent.Tests/        # 纯逻辑测试（xUnit），不需要 VSCode
 └── Assets/                          # MSIX 图标资源
+    ├── MaterialIcons/               # 按文件名关联的彩色图标（MIT，见其 NOTICE.md）
+    └── MobaIcons/                   # MobaXterm 会话类型图标（Tabler，MIT，见其 NOTICE.md）
 ```
 
 ### 测试
@@ -245,6 +300,26 @@ CI（`.github/workflows/build.yml`）会在两个平台上各跑一遍：`x64` �
   `UpdateSearchText`。另存一份关键词并优先用它，会让「进页面后清空搜索框，列表却还是旧结果」。
 - 分组**不要自己插 `Separator`**：宿主按 `IListItem.Section` 认分组，且要求 `Command` 为空
   才算 section header。Toolkit 的 `Section` 构造时就自动插好了，直接用即可。
+- MobaXterm 数据源**不套 `IVSCodeHistorySource`**：那套接口的 `SourceRead` 承载 `VSCodeItem`
+  （含 MRU Order、去重、WSL 目标），而 session 是配置文件里的树，语义不同。`MobaXtermSessions`
+  只复用了刷新/缓存的**骨架**，没复用它的类型。
+- MobaXterm 的 session 路径**只依赖 `SubRep` 的字符串内容**还原层级，`[Bookmarks_N]` 的编号
+  不参与深度计算（不假设编号连续）。`__PTVIRG__` 是值里 `;` 的转义。
+- 启动 MobaXterm **直接 `Process.Start` exe，不套 `cmd.exe`**：`OpenInVSCodeCommand` 包一层
+  cmd 是因为 PATH 上的 `code` 是 `.cmd` 批处理；`MobaXterm.exe` 是真正的 GUI 程序，套 cmd
+  反而让 `%` 被展开、并多一层窗口风险。
+- 打开 session **只用 `-bookmark`，不要加 `-newtab`**。实测：`-bookmark` 单独用时，
+  MobaXterm 已在运行则复用它、在窗口里开新标签，未运行则自行启动。而 `-newtab`
+  的语义是「在新标签里执行后跟的命令」（文档 `-newtab ["<Command>"]`），把
+  `-bookmark ...` 拼在它后面会被当成一条 shell 命令去执行 —— 表现为终端里跑一堆
+  `set -o` 然后 `/bin/bash: -c: option requires an argument`、会话即关。
+- 参数里的路径**必须整体带引号**（`-bookmark "User sessions\ld\gateway"`）：名字含空格，
+  不加引号会被按空格切开，报 `no bookmark folder "User"`。
+- **置前要用「最小化 + 还原」，不能只 `SetForegroundWindow`**。扩展是进程外 COM 服务器，
+  启动时不在前台，Windows 的前台锁定会让 `SetForegroundWindow` 直接失败（实测返回 false），
+  `SwitchToThisWindow` 同样无效。先 `ShowWindow(SW_MINIMIZE)` + `ShowWindow(SW_RESTORE)`
+  让窗口重新获得置前资格，再 `SetForegroundWindow` 才成立 —— 见 `WindowActivation.cs`。
+  启动前先取窗口快照，只认「新出现的窗口」，避免聚焦到无关窗口。
 
 ## 许可证
 

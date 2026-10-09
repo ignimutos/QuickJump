@@ -1,9 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using VSCodeRecent.Commands;
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 根列表的 Fallback 命中项。在 Command Palette 根搜索框直接敲项目名时，
@@ -80,7 +78,7 @@ internal sealed partial class VSCodeRecentFallbackItem : FallbackCommandItem
             var single = matched[0];
             Title = $"在 VSCode 中打开 “{single.Title}”";
             Subtitle = $"{single.TypeLabel} · {single.Path}";
-            Command = new OpenInVSCodeCommand(single.Target);
+            Command = new OpenInVSCodeCommand(single.Target, _settings);
             return;
         }
 

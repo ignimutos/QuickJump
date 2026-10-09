@@ -1,4 +1,4 @@
-namespace VSCodeRecent.Models;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 列表页要渲染的分组。纯函数，不碰渲染也不碰文件系统。

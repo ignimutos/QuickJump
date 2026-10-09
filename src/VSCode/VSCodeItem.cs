@@ -1,4 +1,4 @@
-namespace VSCodeRecent.Models;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>一条 VSCode 最近打开记录。</summary>
 internal sealed record VSCodeItem

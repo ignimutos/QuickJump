@@ -1,4 +1,4 @@
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>VSCode 的一个存储位置。</summary>
 internal enum VSCodeStorageKind
@@ -187,19 +187,8 @@ internal sealed class VSCodeInstall
         }
 
         // 2) Scoop：PATH 上是 <root>\shims，真正的应用在 <root>\apps\<name>\current
-        foreach (var dir in PathDirectories())
+        foreach (var scoopRoot in PathEnvironment.ScoopRoots())
         {
-            if (!Path.GetFileName(dir).Equals("shims", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var scoopRoot = Path.GetDirectoryName(dir);
-            if (string.IsNullOrEmpty(scoopRoot))
-            {
-                continue;
-            }
-
             foreach (var name in PortableVariantNames)
             {
                 var dataDir = DataDirNear(Path.Combine(scoopRoot, "apps", name, "current", "Code.exe"));
@@ -217,7 +206,7 @@ internal sealed class VSCodeInstall
         var found = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var dir in PathDirectories())
+        foreach (var dir in PathEnvironment.Directories())
         {
             foreach (var exeName in CodeExecutableNames)
             {
@@ -238,19 +227,6 @@ internal sealed class VSCodeInstall
         }
 
         return found;
-    }
-
-    private static IEnumerable<string> PathDirectories()
-    {
-        var pathVar = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        foreach (var rawDir in pathVar.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var dir = rawDir.Trim().Trim('"');
-            if (dir.Length > 0)
-            {
-                yield return dir;
-            }
-        }
     }
 
     private static IEnumerable<string> RunningCodeExecutables()
@@ -322,7 +298,8 @@ internal sealed class VSCodeInstall
         return null;
     }
 
-    private static string? TryGetFullPath(string path)
+    /// <summary>路径规范化的容错包装，外部（如 <c>MobaXtermInstall</c>）也复用。</summary>
+    internal static string? TryGetFullPath(string path)
     {
         try
         {

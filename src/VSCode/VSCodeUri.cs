@@ -1,6 +1,5 @@
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// VSCode 记录里的 URI → <see cref="VSCodeOpenTarget"/>。全仓库只有这里碰 URI 的编解码。

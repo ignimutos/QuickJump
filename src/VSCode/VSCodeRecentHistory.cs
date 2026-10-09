@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 读取 VSCode 最近打开记录。

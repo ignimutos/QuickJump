@@ -1,9 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using VSCodeRecent.Commands;
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 最近项目列表页。顶层命令 "VSCode Recent" 回车后进入这里。
@@ -133,8 +131,8 @@ internal sealed partial class VSCodeRecentListPage : DynamicListPage
         ];
     }
 
-    private static ListItem ToListItem(VSCodeItem item) =>
-        new(new OpenInVSCodeCommand(item.Target))
+    private ListItem ToListItem(VSCodeItem item) =>
+        new(new OpenInVSCodeCommand(item.Target, _settings))
         {
             Title = item.Title,
             Subtitle = $"{item.TypeLabel} · {item.Path}",

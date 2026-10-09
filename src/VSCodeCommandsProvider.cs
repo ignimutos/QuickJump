@@ -1,5 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using VSCodeRecent.MobaXterm;
+using VSCodeRecent.VSCode;
 
 namespace VSCodeRecent;
 
@@ -27,12 +29,19 @@ public partial class VSCodeCommandsProvider : CommandProvider
 
         _fallbacks = [new VSCodeRecentFallbackItem(_settings, history, listPage)];
 
+        var mobaSessions = new MobaXtermSessions();
+
         _commands =
         [
             new CommandItem(listPage)
             {
                 Title = "VSCode Recent",
                 Subtitle = "最近打开的 VSCode 项目",
+            },
+            new CommandItem(new MobaXtermSessionListPage(_settings, mobaSessions))
+            {
+                Title = "MobaXterm Sessions",
+                Subtitle = "搜索并连接 MobaXterm session",
             },
         ];
 

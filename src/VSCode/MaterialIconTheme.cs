@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace VSCodeRecent.Models;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// Material Icon Theme 的关联表，用来按文件名挑图标。

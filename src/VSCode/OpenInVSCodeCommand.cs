@@ -1,8 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using VSCodeRecent.Models;
 
-namespace VSCodeRecent.Commands;
+namespace VSCodeRecent.VSCode;
 
 /// <summary>
 /// 在 VSCode 中打开一个最近项目。
@@ -12,11 +11,16 @@ namespace VSCodeRecent.Commands;
 /// </summary>
 internal sealed partial class OpenInVSCodeCommand : InvokableCommand
 {
-    private readonly VSCodeOpenTarget _target;
+    /// <summary>VSCode 的进程名，用于把窗口切到前台。</summary>
+    private const string CodeProcessName = "Code";
 
-    public OpenInVSCodeCommand(VSCodeOpenTarget target)
+    private readonly VSCodeOpenTarget _target;
+    private readonly VSCodeRecentSettings _settings;
+
+    public OpenInVSCodeCommand(VSCodeOpenTarget target, VSCodeRecentSettings settings)
     {
         _target = target;
+        _settings = settings;
         Name = "Open in VSCode";
 
         // 不设 Icon：宿主在列表项没给图标时会回退到 Command.Icon，
@@ -27,7 +31,12 @@ internal sealed partial class OpenInVSCodeCommand : InvokableCommand
     {
         try
         {
-            StartCode(_target.ToCodeArguments());
+            // VSCode 可能多窗口；只认「新出现的窗口」，复用窗口时交给 VSCode 自己聚焦。
+            WindowActivation.LaunchAndActivate(
+                CodeProcessName,
+                activateExisting: false,
+                activate: _settings.ActivateOnOpen.Value,
+                launch: () => StartCode(_target.ToCodeArguments()));
         }
         catch (Exception ex)
         {
