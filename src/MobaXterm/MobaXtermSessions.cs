@@ -147,6 +147,31 @@ internal sealed class MobaXtermSessions
     }
 
     /// <summary>
+    /// 该显示哪些目录行（去重、稳定顺序）。
+    ///
+    /// <para>空查询是浏览视图，列出命中结果里出现过的全部目录。有查询词时**只在查询词本身
+    /// 命中目录名**时才给目录行 —— 敲的是 session 名却插一条它所在目录的行，只会把真正想连的
+    /// 那条挤下去，还得多按一次回车。</para>
+    /// </summary>
+    public static IReadOnlyList<string> FolderRows(
+        IReadOnlyList<MobaXtermSession> matched,
+        string? query)
+    {
+        var folders = matched
+            .Select(s => s.Folder)
+            .Where(f => f.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return [.. folders];
+        }
+
+        var term = query.Trim();
+        return [.. folders.Where(f => f.Contains(term, StringComparison.OrdinalIgnoreCase))];
+    }
+
+    /// <summary>
     /// 只保留目录恰好等于 <paramref name="folder"/> 的 session（区分大小写不敏感）。
     /// 目录行点击用它 —— 子串匹配会把 <c>prod-backup</c> 之类也带上，语义不对。
     /// </summary>

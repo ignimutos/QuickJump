@@ -41,6 +41,63 @@ public class MobaXtermSessionTests
     }
 
     [Fact]
+    public void FolderRows_EmptyQueryListsEveryFolder()
+    {
+        var items = new List<MobaXtermSession>
+        {
+            Ssh("gateway", "ld", "192.168.31.100"),
+            Ssh("aiyun", "remote", "38.105.28.110"),
+            Ssh("rootbox", "", "10.0.0.1"),   // 根目录不给目录行
+        };
+
+        Assert.Equal(["ld", "remote"], MobaXtermSessions.FolderRows(items, ""));
+    }
+
+    [Fact]
+    public void FolderRows_NoFolderRowWhenQueryOnlyHitsSessionName()
+    {
+        var items = new List<MobaXtermSession>
+        {
+            Ssh("gateway", "ld", "192.168.31.100"),
+            Ssh("aiyun", "remote", "38.105.28.110"),
+        };
+
+        // 敲具体 session 名时不该冒出它所在的目录行 —— 否则真想要的那条被挤到后面。
+        var matched = MobaXtermSessions.Search(items, "gate");
+        Assert.Single(matched);
+        Assert.Empty(MobaXtermSessions.FolderRows(matched, "gate"));
+    }
+
+    [Fact]
+    public void FolderRows_NoFolderRowWhenQueryOnlyHitsHost()
+    {
+        var items = new List<MobaXtermSession>
+        {
+            Ssh("gateway", "ld", "192.168.31.100"),
+            Ssh("aiyun", "remote", "38.105.28.110"),
+        };
+
+        var matched = MobaXtermSessions.Search(items, "38.105");
+        Assert.Single(matched);
+        Assert.Empty(MobaXtermSessions.FolderRows(matched, "38.105"));
+    }
+
+    [Fact]
+    public void FolderRows_FolderRowSurvivesWhenQueryHitsFolderName()
+    {
+        var items = new List<MobaXtermSession>
+        {
+            Ssh("gateway", "ld", "192.168.31.100"),
+            Ssh("aiyun", "remote", "38.105.28.110"),
+        };
+
+        // 搜索词本身命中目录名时保留目录行（大小写不敏感），目录行仍是一键进子页的入口。
+        var matched = MobaXtermSessions.Search(items, "REMO");
+        Assert.Single(matched);
+        Assert.Equal(["remote"], MobaXtermSessions.FolderRows(matched, "REMO"));
+    }
+
+    [Fact]
     public void InFolder_MatchesExactFolderNotSubstring()
     {
         var items = new List<MobaXtermSession>

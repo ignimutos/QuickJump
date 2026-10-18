@@ -108,7 +108,7 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
         var items = new List<IListItem>();
         if (_settings.MobaXtermShowFolders.Value)
         {
-            foreach (var name in Folders(matched))
+            foreach (var name in MobaXtermSessions.FolderRows(matched, query))
             {
                 items.Add(FolderItem(name, matched.Count(s => s.Folder == name)));
             }
@@ -117,10 +117,6 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
         items.AddRange(matched.Select(s => MobaXtermSessionRow.Create(s, _settings)));
         return items;
     }
-
-    /// <summary>当前可见 session 里出现过的目录（去重、稳定顺序）。</summary>
-    private static IEnumerable<string> Folders(IReadOnlyList<MobaXtermSession> sessions) =>
-        sessions.Select(s => s.Folder).Where(f => f.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 目录行：点它推入 <see cref="MobaXtermFolderPage"/> 子页，只列该目录下的会话。

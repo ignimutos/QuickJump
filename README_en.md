@@ -76,8 +76,11 @@ The **MobaXterm** top-level command lists every session in the local `MobaXterm.
   Command Palette's own back arrow to go up. When the host setting
   `Appearance -> Go back with Backspace when search is empty` is on, clearing the box and pressing
   Backspace also goes back. Turn folder rows off in the settings to list sessions only.
-- **Search**: filters by name, folder, or host substring. Typing a folder name (e.g. `remote`) shows
-  every session in that folder, whether or not folder rows are shown.
+  During a search, a folder row appears only when the query matches the folder name.
+  A query that matches a session name gives session rows only, so no folder row pushes them down.
+- **Search**: filters by name, folder, or host substring. Results keep the order from the ini file.
+  Typing a folder name (e.g. `remote`) shows every session in that folder, whether or not folder
+  rows are shown. The folder row still comes first, so you can still enter that folder's sub-page.
 
 Like VSCode, you can also type a session name (at least 2 characters) straight into the **root
 search box**, without entering the list page first:
