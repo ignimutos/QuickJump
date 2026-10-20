@@ -48,9 +48,13 @@ internal sealed partial class MobaXtermFolderPage : DynamicListPage
             ];
         }
 
-        // 目录归属用精确匹配（不因子串把 prod-backup 之类带进来），再按框内词做子串筛选。
+        // 目录归属用精确匹配 (不因子串把 prod-backup 之类带进来), 再按框内词做子串筛选.
+        // 查询短于门槛时传 null, 按浏览视图列出全部.
         var inFolder = MobaXtermSessions.InFolder(snapshot.Items, _folder);
-        var matched = MobaXtermSessions.Search(inFolder, SearchText?.Trim());
+        var query = SearchText?.Trim();
+        var minQueryLength = _settings.MinQueryLengthValue;
+        var tooShort = QueryGate.IsTooShort(query, minQueryLength);
+        var matched = MobaXtermSessions.Search(inFolder, tooShort ? null : query);
 
         if (matched.Count == 0)
         {
@@ -58,13 +62,29 @@ internal sealed partial class MobaXtermFolderPage : DynamicListPage
             [
                 new ListItem(new NoOpCommand())
                 {
-                    Title = $"没有匹配 “{SearchText?.Trim()}” 的 session",
+                    Title = $"没有匹配 “{query}” 的 session",
                     Subtitle = $"“{_folder}” 目录下共 {inFolder.Count} 条 session",
-                    Icon = new IconInfo(""), // SearchAndApps / 放大镜
+                    Icon = new IconInfo(""), // SearchAndApps / 放大镜
                 },
             ];
         }
 
-        return [.. matched.Select(s => MobaXtermSessionRow.Create(s, _settings))];
+        IListItem[] rows = [.. matched.Select(s => MobaXtermSessionRow.Create(s, _settings))];
+
+        if (!tooShort)
+        {
+            return rows;
+        }
+
+        // 太短时列表是浏览视图, 首行补一条提示解释 "为什么敲了字没筛".
+        return [TooShortHint(query ?? string.Empty, minQueryLength, matched.Count), .. rows];
     }
+
+    private static ListItem TooShortHint(string query, int minQueryLength, int total) =>
+        new(new NoOpCommand())
+        {
+            Title = QueryGateHint.Title(query, minQueryLength),
+            Subtitle = QueryGateHint.Subtitle(total, "条 session"),
+            Icon = new IconInfo(""), // SearchAndApps / 放大镜
+        };
 }

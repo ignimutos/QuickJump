@@ -23,7 +23,7 @@ internal sealed partial class VSCodeFallbackItem : FallbackItem
         QuickJumpSettings settings,
         VSCodeHistory history,
         VSCodeListPage listPage)
-        : base("打开 VSCode 最近项目", "QuickJump.vscode.fallback", VSCodeIcons.App)
+        : base(settings, "打开 VSCode 最近项目", "QuickJump.vscode.fallback", VSCodeIcons.App)
     {
         _settings = settings;
         _history = history;

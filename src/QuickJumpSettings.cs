@@ -11,6 +11,19 @@ internal sealed class QuickJumpSettings : JsonSettingsManager
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "QuickJump");
 
+    /// <summary>
+    /// 少于这个长度的查询不筛选, 列表按浏览视图列出全部. 默认 2 -- 单字符几乎必然命中
+    /// 一大批, 让列表随每次按键整体抖动. 想单字符就筛, 切到 1.
+    /// </summary>
+    public ChoiceSetSetting MinQueryLength { get; } = new(
+        "minQueryLength",
+        "最少搜索字符数",
+        "少于这个长度时不筛选, 按浏览视图列出全部; 同样适用于根搜索框的回退项 (1 = 单字符即筛选)",
+        [new ChoiceSetSetting.Choice("2 个字符", "2"), new ChoiceSetSetting.Choice("1 个字符", "1")]);
+
+    /// <summary>设置值解析成门槛 (只认 1 / 2, 其余取默认).</summary>
+    public int MinQueryLengthValue => QueryGate.ResolveMinQueryLength(MinQueryLength.Value);
+
     /// <summary>默认不显示文件 —— 最近记录里绝大多数是单独打开的文件，会淹没项目。</summary>
     public ToggleSetting ShowFiles { get; } = new(
         "showFiles",
@@ -57,6 +70,7 @@ internal sealed class QuickJumpSettings : JsonSettingsManager
         Directory.CreateDirectory(SettingsDir);
         FilePath = Path.Combine(SettingsDir, "settings.json");
         Settings.Add(ShowFiles);
+        Settings.Add(MinQueryLength);
         Settings.Add(MobaXtermIniPath);
         Settings.Add(MobaXtermExePath);
         Settings.Add(MobaXtermShowFolders);

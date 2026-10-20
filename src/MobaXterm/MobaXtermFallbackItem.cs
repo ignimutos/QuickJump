@@ -18,7 +18,7 @@ internal sealed partial class MobaXtermFallbackItem : FallbackItem
         QuickJumpSettings settings,
         MobaXtermSessions sessions,
         MobaXtermSessionListPage listPage)
-        : base("打开 MobaXterm 会话", "QuickJump.mobaxterm.fallback", MobaXtermIcons.App)
+        : base(settings, "打开 MobaXterm 会话", "QuickJump.mobaxterm.fallback", MobaXtermIcons.App)
     {
         _settings = settings;
         _sessions = sessions;

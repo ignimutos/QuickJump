@@ -53,8 +53,8 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 3. Select **VSCode** and press Enter
 4. Select a project and press Enter to open it in VSCode
 
-There is a faster path: type a project name (at least 2 characters) into the root search box.
-The extension shows up in the results as a fallback item —
+There is a faster path: type a project name (2 characters by default, see **Minimum search length**
+in Settings) into the root search box. The extension shows up in the results as a fallback item —
 
 - **Exactly one match**: Enter **opens that project directly**, skipping the list page
 - **Several matches**: Enter opens the list page with your query already filled in; keep editing it there
@@ -82,8 +82,8 @@ The **MobaXterm** top-level command lists every session in the local `MobaXterm.
   Typing a folder name (e.g. `remote`) shows every session in that folder, whether or not folder
   rows are shown. The folder row still comes first, so you can still enter that folder's sub-page.
 
-Like VSCode, you can also type a session name (at least 2 characters) straight into the **root
-search box**, without entering the list page first:
+Like VSCode, you can also type a session name (2 characters by default, see Settings) straight into
+the **root search box**, without entering the list page first:
 
 - **Exactly one match**: Enter **connects** to that session directly, without the list page
 - **Several matches**: Enter opens the list page with your query already filled in
@@ -109,6 +109,10 @@ In the Command Palette extension settings you can configure:
 - **Show folders** (on by default) — whether to show folder rows in the MobaXterm list. Turn it off
   to list sessions only. Folder names are always searchable either way; this only controls whether
   a folder also gets its own row.
+- **Minimum search length** (2 by default) — a shorter query does not filter. The list then shows
+  every entry. Its first row states the required length. Set it to 1 to filter on one character,
+  in the list pages and in the root-search fallback. A single character matches almost everything,
+  so the default of 2 keeps the list stable on every keystroke.
 
 Settings live in `%LOCALAPPDATA%\QuickJump\settings.json`.
 

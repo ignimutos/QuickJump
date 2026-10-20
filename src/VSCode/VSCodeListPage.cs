@@ -97,9 +97,12 @@ internal sealed partial class VSCodeListPage : DynamicListPage
             return [DiagnosticItem(snapshot.Succeeded, snapshot.Failure)];
         }
 
-        // 页内搜索：这里显式按子串匹配，便于直接打项目名命中。
+        // 页内搜索: 这里显式按子串匹配, 便于直接打项目名命中.
+        // 查询短于门槛时传 null, 按浏览视图列出全部.
         var query = SearchText?.Trim();
-        var matched = VSCodeHistory.Search(all, query, IncludeFiles);
+        var minQueryLength = _settings.MinQueryLengthValue;
+        var tooShort = QueryGate.IsTooShort(query, minQueryLength);
+        var matched = VSCodeHistory.Search(all, tooShort ? null : query, IncludeFiles);
 
         if (matched.Count == 0)
         {
@@ -116,20 +119,33 @@ internal sealed partial class VSCodeListPage : DynamicListPage
 
         var groups = ItemGroups.Split(matched);
 
-        // 只有一个分组时不画标题 —— 默认视图（关掉「显示文件」）就只有项目，
-        // 顶一行「项目 (4)」是白占位置。
-        if (groups.Count == 1)
+        // 只有一个分组时不画标题 -- 默认视图 (关掉 "显示文件") 就只有项目,
+        // 顶一行 "项目 (4)" 是白占位置.
+        IListItem[] rows = groups.Count == 1
+            ? [.. groups[0].Items.Select(ToListItem)]
+            :
+            [
+                // Section 构造时会自己插入一条带标题的 Separator, 所以这里不用再手动加.
+                .. groups.SelectMany(group =>
+                    new Section(group.Title, [.. group.Items.Select(ToListItem)])),
+            ];
+
+        if (!tooShort)
         {
-            return [.. groups[0].Items.Select(ToListItem)];
+            return rows;
         }
 
-        // Section 构造时会自己插入一条带标题的 Separator，所以这里不用再手动加。
-        return
-        [
-            .. groups.SelectMany(group =>
-                new Section(group.Title, [.. group.Items.Select(ToListItem)])),
-        ];
+        // 太短时列表是浏览视图, 首行补一条提示解释 "为什么敲了字没筛".
+        return [TooShortHint(query ?? string.Empty, minQueryLength, matched.Count), .. rows];
     }
+
+    private ListItem TooShortHint(string query, int minQueryLength, int total) =>
+        new(new NoOpCommand())
+        {
+            Title = QueryGateHint.Title(query, minQueryLength),
+            Subtitle = QueryGateHint.Subtitle(total, "条最近记录"),
+            Icon = new IconInfo(""), // SearchAndApps / 放大镜
+        };
 
     private ListItem ToListItem(VSCodeItem item) =>
         new(new OpenInVSCodeCommand(item.Target, _settings))
