@@ -4,7 +4,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 namespace QuickJump.VSCode;
 
 /// <summary>
-/// 最近项目列表页。顶层命令 "VSCode" 回车后进入这里。
+/// 最近项目列表页。根搜索入口 "QuickJump VSCode" 回车后进入这里。
 ///
 /// 页面自己持有设置与读取器 —— 之前是靠把「显示文件」推进读取器的单例来生效，
 /// 页面不认识自己的设置；现在取值随每次调用进来，读取器只管缓存。
@@ -27,6 +27,12 @@ internal sealed partial class VSCodeListPage : DynamicListPage
         // 页面级别的插件图标保留 —— 这是进入页面后唯一能看出是哪个插件的地方。
         // 去掉的是每一行记录的类型图标（那个由 Command.Icon 回退而来，已一并清理）。
         Icon = IconHelpers.FromRelativePath(VSCodeIcons.App);
+
+        // 固定 Id: 宿主拿页面的 Command.Id 当顶层命令 Id. 留空则退回宿主自己算的哈希
+        // (提供者 Id + 标题 + 副标题), 改这几个字就会换 Id -- 别名、热键、首页固定项全部失效.
+        // 页头 Title 以后可以随便改.
+        Id = "QuickJump.vscode.list";
+
         Title = "VSCode";
         Name = "Open";
 

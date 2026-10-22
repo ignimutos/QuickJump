@@ -19,7 +19,7 @@ One extension, two modules (VSCode / MobaXterm), each with its own top-level com
   the same split VSCode itself uses, since the two segments have no comparable timestamps
   (VSCode stores order, not time). CmdPal list pages are a single scrolling column, so side-by-side
   columns are not possible; when the file list is long, typing to filter beats scrolling
-- A second top-level command, **MobaXterm**: search the local MobaXterm sessions
+- A second top-level command, **QuickJump MobaXterm**: search the local MobaXterm sessions
   (folder levels included), then press Enter to open one with `MobaXterm.exe -bookmark` and
   log in to it; it also supports hitting a session straight from the root search box (below)
 
@@ -46,12 +46,24 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 > When overwriting an older version, add `-ForceUpdateFromAnyVersion`, otherwise an equal
 > or lower version number is rejected.
 
+> **Upgrading from 1.2.0:** the two top-level command Ids are now fixed values
+> (`QuickJump.vscode.list` / `QuickJump.mobaxterm.list`). An alias or hotkey that you bound
+> before stops working, because the host stores these settings by Id. Set the alias again in
+> Settings -> Extensions -> QuickJump. It then survives a title change. Pin the two items to
+> Home again if you pinned them before. The old hash Ids stay in the host settings. They cause
+> no harm, and the old alias value no longer matches.
+
 ## Usage
 
 1. Press `Win + Alt + Space` to open Command Palette (default; changable in Command Palette settings)
 2. **Scroll to the very bottom of the root list** — extension top-level commands come after the built-in ones. In compact mode, press `↓` or `Tab` first to expand the list
-3. Select **VSCode** and press Enter
+3. Select **QuickJump VSCode** and press Enter
 4. Select a project and press Enter to open it in VSCode
+
+> The root-search entry carries a `QuickJump ` prefix. This prefix separates it from the system
+> app results, such as `Visual Studio Code` and `MobaXterm`. Inside the page, the header shows the
+> module name only. You cannot hide one top-level command. Command Palette has an on-off switch
+> for a whole extension only.
 
 There is a faster path: type a project name (2 characters by default, see **Minimum search length**
 in Settings) into the root search box. The extension shows up in the results as a fallback item —
@@ -65,7 +77,8 @@ in Settings) into the root search box. The extension shows up in the results as 
 
 ### MobaXterm
 
-The **MobaXterm** top-level command lists every session in the local `MobaXterm.ini`:
+The **QuickJump MobaXterm** top-level command lists every session in the local `MobaXterm.ini`.
+Enter opens the list page only. It starts nothing:
 
 - **Each row**: the session name as the title, the folder and `user@host:port` in the subtitle, and
   a per-protocol icon (SSH / WSL / other). Enter opens it with
@@ -340,6 +353,11 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 - The provider **must derive from** `Microsoft.CommandPalette.Extensions.Toolkit.CommandProvider`; do not hand-implement `ICommandProvider`. The base class supplies all the plumbing, and subclasses only `override TopLevelCommands()`.
 - The `[Guid]` in `QuickJumpExtension.cs` must match the COM `Class Id` in `Package.appxmanifest`.
 - This is an out-of-process WinRT/COM extension. It **cannot** be loaded the PowerToys Run `plugin.json` way.
+- A top-level command takes its Id from the page `Command.Id`. **A list page that backs a
+  top-level command must set a fixed `Id`**, such as `QuickJump.vscode.list`. A page that is only
+  pushed from inside another page, such as a folder sub-page, does not need one. Without the Id,
+  the host falls back to the provider Id plus a hash of the title and subtitle. A new title then
+  means a new Id. The alias, the hotkey, and the Home pin of the user all stop working.
 - The list page **must derive from `DynamicListPage`**, not `ListPage`: with a plain `ListPage` the host
   does the prefix fuzzy-matching and the page never sees the query. `SearchText` is the **single source
   of truth** for the query — the host only reads it once, when it initializes the page

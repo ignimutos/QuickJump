@@ -4,7 +4,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 namespace QuickJump.MobaXterm;
 
 /// <summary>
-/// MobaXterm session 列表页。顶层命令 "MobaXterm Sessions" 回车后进入这里。
+/// MobaXterm session 列表页。根搜索入口 "QuickJump MobaXterm" 回车后进入这里。
 ///
 /// <para>结构与 <c>VSCodeListPage</c> 一致：<see cref="DynamicListPage"/> +
 /// 页内子串筛选 + 加载态 + 后台刷新 + 诊断项。区别在于数据源、每行的图标，
@@ -21,6 +21,12 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
         _sessions = sessions;
 
         Icon = IconHelpers.FromRelativePath(MobaXtermIcons.App);
+
+        // 固定 Id: 宿主拿页面的 Command.Id 当顶层命令 Id. 留空则退回宿主自己算的哈希
+        // (提供者 Id + 标题 + 副标题), 改这几个字就会换 Id -- 别名、热键、首页固定项全部失效.
+        // 页头 Title 以后可以随便改.
+        Id = "QuickJump.mobaxterm.list";
+
         Title = "MobaXterm Sessions";
         Name = "Open";
 

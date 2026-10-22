@@ -18,7 +18,7 @@ PowerToys Command Palette 扩展 —— 快速跳转到 VSCode 最近项目与 M
   **项目 (N)** / **文件 (N)** 两组（标题带条数），与 VSCode 自己的最近列表一致 ——
   这两段之间没有可比较的时间戳（VSCode 只存顺序不存时间），所以不揉成一条时间线。
   CmdPal 的列表页只能单列滚动，做不到左右分栏；文件太多时直接打字筛选，比滚更快
-- 另一个顶层命令 **MobaXterm**：搜索本机 MobaXterm 的 session（含目录层级），
+- 另一个顶层命令 **QuickJump MobaXterm**：搜索本机 MobaXterm 的 session（含目录层级），
   回车用 `MobaXterm.exe -bookmark` 打开并自动登入该 session；同样支持在根搜索框
   直接敲 session 名命中（见下）
 
@@ -42,12 +42,21 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 >
 > 覆盖安装旧版本时加 `-ForceUpdateFromAnyVersion`，否则版本号相同/更低会被挡下。
 
+> **从 1.2.0 升级要注意**: 两个顶层命令的 Id 已改为固定值 (`QuickJump.vscode.list` /
+> `QuickJump.mobaxterm.list`), 之前绑过的别名与热键会失效 (宿主按 Id 存档). 到
+> 设置 → 扩展 → QuickJump 里重新填一次即可, 之后改标题也不会再丢. 若曾把这两条固定到首页,
+> 需要重新固定. 旧的哈希 Id 会残留在宿主设置里, 无害, 输入旧别名不会命中.
+
 ## 使用
 
 1. `Win + Alt + Space` 打开 Command Palette（默认快捷键，可在 Command Palette 设置里改）
 2. **滚到根列表最末尾** —— 扩展的顶层命令排在系统命令之后；若开了紧凑模式，先按 `↓` 或 `Tab` 展开列表
-3. 选择 **VSCode** 回车进入列表页
+3. 选择 **QuickJump VSCode** 回车进入列表页
 4. 选中项目回车，在 VSCode 中打开
+
+> 根搜索入口的标题带 `QuickJump ` 前缀, 是为了和系统列出的应用条目 (`Visual Studio Code`,
+> `MobaXterm` 等) 区分开. 进入页面后页头只写模块名, 不再带前缀. 这类顶层命令没法单独隐藏 --
+> Command Palette 只有整个扩展的启用开关.
 
 更快的一条路: 在根搜索框直接敲项目名 (默认至少 2 个字符, 见设置里的**最少搜索字符数**).
 扩展会以回退项的形式出现在结果里:
@@ -60,7 +69,7 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
 
 ### MobaXterm
 
-顶层命令 **MobaXterm** 列出本机 `MobaXterm.ini` 里的全部 session：
+顶层命令 **QuickJump MobaXterm** (回车只进列表页, 不启动任何东西) 列出本机 `MobaXterm.ini` 里的全部 session:
 
 - **每行**：标题是 session 名，副标题带目录、`user@host:port`，图标按协议区分
   （SSH / WSL / 其它）。回车用 `MobaXterm.exe -bookmark "User sessions\<目录>\<名字>"`
@@ -323,6 +332,9 @@ CI（`.github/workflows/build.yml`）会在两个平台上各跑一遍：`x64` �
 - URI 解码**只用 `Uri.UnescapeDataString`，不要用 `HttpUtility.UrlDecode`** —— 后者是表单编码语义，会把路径里的 `+` 当空格吃掉。
 - PATH 上的 `code` 命令枚举**只有 `VSCodeInstall.CodeExecutableNames` 一份**，启动与便携版探测共用，避免两处清单漂移。
 - WSL 的 distro 名在生成命令行时转小写，而路径段保持原样；两者混写会打不开（见 `VSCodeOpenTarget` 注释）。
+- 顶层命令的 Id 来自页面的 `Command.Id`, 所以**作为顶层命令载体的列表页必须设固定的 `Id`**
+  (如 `QuickJump.vscode.list`); 目录子页这类只在页内推入的页面不需要. 不设时宿主退回
+  "提供者 Id + 标题/副标题哈希", **改标题即换 Id** -- 用户绑的别名、热键、首页固定项一起失效.
 - 列表页**必须继承 `DynamicListPage`**，不能是 `ListPage`：普通 ListPage 由宿主做前缀模糊匹配，
   页面拿不到输入框内容。`SearchText` 是**唯一的查询来源** —— 宿主只在页面刷新时读一次它
   （`ListViewModel` 里 `SearchText = model.SearchText`），之后每次输入走
