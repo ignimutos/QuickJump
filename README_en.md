@@ -11,7 +11,10 @@ One extension, two modules (VSCode / MobaXterm), each with its own top-level com
 ## Features
 
 - Auto-display recently opened VSCode folders and workspaces
-- List ordered by last-opened time, newest first
+- List ordered by last-opened time, newest first. A search ranks matches in this order:
+  exact title, title prefix, title substring, then path-only matches. A rank keeps the
+  original list order. With **Show files** on, the rank order applies inside the Projects
+  and Files groups only. An exact file match does not move above a project.
 - WSL remote project support (restores the `vscode-remote://wsl+` URI)
 - One keystroke to open in VSCode
 - A **Show files** setting to include individually opened files (off by default). When on,

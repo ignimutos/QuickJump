@@ -121,8 +121,13 @@ internal sealed class VSCodeHistory
     }
 
     /// <summary>
-    /// 按标题 / 路径做子串匹配。列表页和根列表的 Fallback 内联搜索共用同一套规则，
-    /// 免得两边结果对不上。纯函数，便于脱离缓存测试。
+    /// 按标题 / 路径做子串匹配, 再按相关度分档排序. 列表页和根列表的 Fallback 内联搜索
+    /// 共用同一套规则, 免得两边结果对不上. 纯函数, 便于脱离缓存测试.
+    ///
+    /// <para><b>为什么还要排序.</b>只过滤的话结果保持调用方传入的顺序, 于是一个只是路径里含
+    /// 查询词的项目会排在名字完全匹配的项目前面. 分档见 <see cref="Relevance"/>: 名字命中越强
+    /// 越靠前, 仅路径命中垫底. 同一档内 <c>OrderBy</c> 是稳定排序, 自动保留传入的列表顺序 --
+    /// 那是 <see cref="SortAndDedupe"/> 排好的结果 (来源内按 Order, 跨来源按来源优先级).</para>
     /// </summary>
     public static IReadOnlyList<VSCodeItem> Search(IReadOnlyList<VSCodeItem> items, string? query, bool includeFiles)
     {
@@ -134,10 +139,30 @@ internal sealed class VSCodeHistory
 
         return
         [
-            .. filtered.Where(item =>
-                item.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                item.Path.Contains(query, StringComparison.OrdinalIgnoreCase)),
+            .. filtered
+                .Where(item =>
+                    item.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    item.Path.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(item => Relevance(item, query)),
         ];
+    }
+
+    /// <summary>
+    /// 相关度分档, 越小越靠前. 只看查询词命中标题的强度; 走到最后一档的就是「仅路径命中」.
+    /// </summary>
+    private static int Relevance(VSCodeItem item, string query)
+    {
+        if (item.Title.Equals(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (item.Title.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return item.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ? 2 : 3;
     }
 
     /// <summary>设置里的「显示文件」过滤。纯函数，取值随调用进来。</summary>

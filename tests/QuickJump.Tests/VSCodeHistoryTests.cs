@@ -17,6 +17,19 @@ public class VSCodeHistoryTests
         Target = new VSCodeOpenTarget.LocalFolder(path),
     };
 
+    /// <summary>
+    /// 标题与路径都显式给出。排序测试要看标题, 不能靠 <see cref="Path.GetFileName(string)"/> ——
+    /// 它在非 Windows 上不把反斜杠当分隔符。
+    /// </summary>
+    private static VSCodeItem Named(string title, string path, ItemKind kind = ItemKind.Folder) => new()
+    {
+        Title = title,
+        Path = path,
+        Kind = kind,
+        Order = 0,
+        Target = new VSCodeOpenTarget.LocalFolder(path),
+    };
+
     /// <summary>「显示文件」关闭时只留工作区与文件夹。</summary>
     [Fact]
     public void Filter_ExcludesFilesWhenDisabled()
@@ -173,6 +186,81 @@ public class VSCodeHistoryTests
 
         Assert.Single(VSCodeHistory.Search(items, null, includeFiles: false));
         Assert.Equal(2, VSCodeHistory.Search(items, "  ", includeFiles: true).Count);
+    }
+
+    /// <summary>名字完全匹配的条目排第一, 即使它的 MRU 顺序最靠后。</summary>
+    [Fact]
+    public void Search_RanksExactTitleFirst()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Named("misc", @"\\wsl.localhost\debian\root\git\misc"),
+            Named("QuickJump", @"\\wsl.localhost\debian\root\git\QuickJump"),
+            Named("root", @"\\wsl.localhost\debian\home\root"),
+        ];
+
+        Assert.Equal("root", VSCodeHistory.Search(items, "root", includeFiles: false)[0].Title);
+    }
+
+    /// <summary>名字前缀命中排在名字子串命中之前。</summary>
+    [Fact]
+    public void Search_RanksTitlePrefixBeforeTitleSubstring()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Named("myroot", @"C:\a\myroot"),
+            Named("root-box", @"C:\a\root-box"),
+        ];
+
+        Assert.Equal(
+            ["root-box", "myroot"],
+            VSCodeHistory.Search(items, "root", includeFiles: false).Select(i => i.Title));
+    }
+
+    /// <summary>三档名字命中全部排在「仅路径命中」之前。</summary>
+    [Fact]
+    public void Search_RanksTitleMatchBeforePathOnly()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Named("elsewhere", @"C:\root\elsewhere"),
+            Named("myroot", @"C:\a\myroot"),
+            Named("root-box", @"C:\a\root-box"),
+            Named("root", @"C:\a\root"),
+        ];
+
+        Assert.Equal(
+            ["root", "root-box", "myroot", "elsewhere"],
+            VSCodeHistory.Search(items, "root", includeFiles: false).Select(i => i.Title));
+    }
+
+    /// <summary>同档内的相对顺序不变 —— 稳定排序保留传入的 MRU 顺序。</summary>
+    [Fact]
+    public void Search_KeepsOriginalOrderWithinTier()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Named("root-b", @"C:\a\root-b"),
+            Named("root-a", @"C:\a\root-a"),
+        ];
+
+        Assert.Equal(
+            ["root-b", "root-a"],
+            VSCodeHistory.Search(items, "root", includeFiles: false).Select(i => i.Title));
+    }
+
+    /// <summary>浏览视图 (空查询 / 纯空白) 不应引入任何重排。</summary>
+    [Fact]
+    public void Search_EmptyQueryKeepsSourceOrder()
+    {
+        IReadOnlyList<VSCodeItem> items =
+        [
+            Named("zzz", @"C:\root\zzz"),
+            Named("aaa", @"C:\root\aaa"),
+        ];
+
+        Assert.Equal(["zzz", "aaa"], VSCodeHistory.Search(items, null, true).Select(i => i.Title));
+        Assert.Equal(["zzz", "aaa"], VSCodeHistory.Search(items, "  ", true).Select(i => i.Title));
     }
 
     [Fact]
