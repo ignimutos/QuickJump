@@ -17,6 +17,9 @@ internal sealed partial class MobaXtermFolderPage : DynamicListPage
     private readonly MobaXtermSessions _sessions;
     private readonly string _folder;
 
+    /// <summary>按快照复用行, 见 <see cref="RowCache{T}"/>.</summary>
+    private readonly RowCache<IListItem> _rows = new();
+
     public MobaXtermFolderPage(QuickJumpSettings settings, MobaXtermSessions sessions, string folder)
     {
         _settings = settings;
@@ -48,13 +51,24 @@ internal sealed partial class MobaXtermFolderPage : DynamicListPage
             ];
         }
 
+        var query = SearchText?.Trim();
+        var tooShort = QueryGate.IsTooShort(query, _settings.MinQueryLengthValue);
+
+        // 本页是瞬时实例, 缓存只在这次进出内有意义. 源用快照里的完整列表 --
+        // InFolder 每次都新建列表, 拿它当键会永远不命中. 目录名是实例常量, 不进键.
+        var effective = tooShort ? null : query;
+        var key = effective ?? string.Empty;
+
+        // 缓存里是共享实例, 发布后一律不改.
+        if (_rows.TryGet(snapshot.Items, string.Empty, key, out var rows))
+        {
+            return rows;
+        }
+
         // 目录归属用精确匹配 (不因子串把 prod-backup 之类带进来), 再按框内词做子串筛选.
         // 查询短于门槛时传 null, 按浏览视图列出全部.
         var inFolder = MobaXtermSessions.InFolder(snapshot.Items, _folder);
-        var query = SearchText?.Trim();
-        var minQueryLength = _settings.MinQueryLengthValue;
-        var tooShort = QueryGate.IsTooShort(query, minQueryLength);
-        var matched = MobaXtermSessions.Search(inFolder, tooShort ? null : query);
+        var matched = MobaXtermSessions.Search(inFolder, effective);
 
         if (matched.Count == 0)
         {
@@ -69,22 +83,8 @@ internal sealed partial class MobaXtermFolderPage : DynamicListPage
             ];
         }
 
-        IListItem[] rows = [.. matched.Select(s => MobaXtermSessionRow.Create(s, _settings))];
-
-        if (!tooShort)
-        {
-            return rows;
-        }
-
-        // 太短时列表是浏览视图, 首行补一条提示解释 "为什么敲了字没筛".
-        return [TooShortHint(query ?? string.Empty, minQueryLength, matched.Count), .. rows];
+        rows = matched.Select(s => MobaXtermSessionRow.Create(s, _settings)).ToArray();
+        _rows.Put(snapshot.Items, string.Empty, key, rows);
+        return rows;
     }
-
-    private static ListItem TooShortHint(string query, int minQueryLength, int total) =>
-        new(new NoOpCommand())
-        {
-            Title = QueryGateHint.Title(query, minQueryLength),
-            Subtitle = QueryGateHint.Subtitle(total, "条 session"),
-            Icon = new IconInfo(""), // SearchAndApps / 放大镜
-        };
 }

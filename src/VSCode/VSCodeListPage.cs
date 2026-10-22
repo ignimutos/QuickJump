@@ -19,6 +19,9 @@ internal sealed partial class VSCodeListPage : DynamicListPage
     private readonly QuickJumpSettings _settings;
     private readonly VSCodeHistory _history;
 
+    /// <summary>按快照复用行. 空查询与短查询共用同一份, 见 <see cref="RowCache{T}"/>.</summary>
+    private readonly RowCache<IListItem> _rows = new();
+
     public VSCodeListPage(QuickJumpSettings settings, VSCodeHistory history)
     {
         _settings = settings;
@@ -106,9 +109,22 @@ internal sealed partial class VSCodeListPage : DynamicListPage
         // 页内搜索: 这里显式按子串匹配, 便于直接打项目名命中.
         // 查询短于门槛时传 null, 按浏览视图列出全部.
         var query = SearchText?.Trim();
-        var minQueryLength = _settings.MinQueryLengthValue;
-        var tooShort = QueryGate.IsTooShort(query, minQueryLength);
-        var matched = VSCodeHistory.Search(all, tooShort ? null : query, IncludeFiles);
+        var tooShort = QueryGate.IsTooShort(query, _settings.MinQueryLengthValue);
+
+        // 浏览视图与空查询的结果完全一样, 所以缓存键用「有效查询词」:
+        // 空框那次建好的行, 退格到 1 个字符时直接复用 -- 这正是以前要等的那一下.
+        var effective = tooShort ? null : query;
+        var includeFiles = IncludeFiles;
+        var variant = includeFiles ? "files" : "projects";
+        var key = effective ?? string.Empty;
+
+        // 缓存里是共享实例, 发布后一律不改.
+        if (_rows.TryGet(all, variant, key, out var rows))
+        {
+            return rows;
+        }
+
+        var matched = VSCodeHistory.Search(all, effective, includeFiles);
 
         if (matched.Count == 0)
         {
@@ -123,11 +139,20 @@ internal sealed partial class VSCodeListPage : DynamicListPage
             ];
         }
 
+        rows = BuildRows(matched);
+        _rows.Put(all, variant, key, rows);
+        return rows;
+    }
+
+    /// <summary>
+    /// 把命中结果建成行. 只有一个分组时不画标题 -- 默认视图 (关掉 "显示文件") 就只有项目,
+    /// 顶一行 "项目 (4)" 是白占位置.
+    /// </summary>
+    private IListItem[] BuildRows(IReadOnlyList<VSCodeItem> matched)
+    {
         var groups = ItemGroups.Split(matched);
 
-        // 只有一个分组时不画标题 -- 默认视图 (关掉 "显示文件") 就只有项目,
-        // 顶一行 "项目 (4)" 是白占位置.
-        IListItem[] rows = groups.Count == 1
+        return groups.Count == 1
             ? [.. groups[0].Items.Select(ToListItem)]
             :
             [
@@ -135,23 +160,7 @@ internal sealed partial class VSCodeListPage : DynamicListPage
                 .. groups.SelectMany(group =>
                     new Section(group.Title, [.. group.Items.Select(ToListItem)])),
             ];
-
-        if (!tooShort)
-        {
-            return rows;
-        }
-
-        // 太短时列表是浏览视图, 首行补一条提示解释 "为什么敲了字没筛".
-        return [TooShortHint(query ?? string.Empty, minQueryLength, matched.Count), .. rows];
     }
-
-    private ListItem TooShortHint(string query, int minQueryLength, int total) =>
-        new(new NoOpCommand())
-        {
-            Title = QueryGateHint.Title(query, minQueryLength),
-            Subtitle = QueryGateHint.Subtitle(total, "条最近记录"),
-            Icon = new IconInfo(""), // SearchAndApps / 放大镜
-        };
 
     private ListItem ToListItem(VSCodeItem item) =>
         new(new OpenInVSCodeCommand(item.Target, _settings))
@@ -183,7 +192,7 @@ internal sealed partial class VSCodeListPage : DynamicListPage
             _ => theme.ForFileName(item.FileName),
         };
 
-        return IconHelpers.FromRelativePath(MaterialIconTheme.RelativePath(icon));
+        return IconCache.From(MaterialIconTheme.RelativePath(icon));
     }
 
     /// <summary>

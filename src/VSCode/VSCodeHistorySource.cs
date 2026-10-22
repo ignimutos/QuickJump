@@ -58,6 +58,9 @@ internal interface IVSCodeHistorySource
     /// <summary>数据源名字，仅用于诊断与失败信息。</summary>
     string Name { get; }
 
+    /// <summary>来源文件路径. 缓存据此取 mtime 判断"源有没有变", 见 <see cref="SourceFingerprint"/>.</summary>
+    string SourcePath { get; }
+
     SourceRead Read();
 }
 
@@ -71,6 +74,8 @@ internal sealed class SharedStorageRecordSource : IVSCodeHistorySource
     public SharedStorageRecordSource(string dbPath) => _dbPath = dbPath;
 
     public string Name => $"共享存储 {_dbPath}";
+
+    public string SourcePath => _dbPath;
 
     public SourceRead Read()
     {
@@ -109,6 +114,8 @@ internal sealed class GlobalStorageDatabaseSource : IVSCodeHistorySource
     public GlobalStorageDatabaseSource(string dbPath) => _dbPath = dbPath;
 
     public string Name => $"数据库 {_dbPath}";
+
+    public string SourcePath => _dbPath;
 
     public SourceRead Read()
     {
@@ -158,6 +165,8 @@ internal sealed class StorageJsonSource : IVSCodeHistorySource
     public StorageJsonSource(string filePath) => _filePath = filePath;
 
     public string Name => $"storage.json {_filePath}";
+
+    public string SourcePath => _filePath;
 
     public SourceRead Read()
     {

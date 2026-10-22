@@ -110,8 +110,8 @@ Add-AppxPackage -Path .\QuickJump-x64.msix -AllowUnsigned
   Scoop / 文档目录 / PATH）；探测不到时在此显式指定。
 - **显示目录**（默认开）—— MobaXterm 列表里是否显示目录行。关掉则只列 session。
   目录行本身随时可搜（打目录名即筛出该目录下的会话），此开关只控制它是否单独占一行。
-- **最少搜索字符数** (默认 2) —— 查询短于这个长度时不筛选, 列表按浏览视图列出全部,
-  并在首行提示所需字符数. 改成 1 即单字符也筛选, 根搜索框的回退项同样适用.
+- **最少搜索字符数** (默认 2) —— 查询短于这个长度时不筛选, 列表按浏览视图列出全部.
+  改成 1 即单字符也筛选, 根搜索框的回退项同样适用.
   单字符几乎必然命中一大批, 默认取 2 是为了避免列表随每次按键整体抖动.
 
 设置存在 `%LOCALAPPDATA%\QuickJump\settings.json`。
@@ -281,6 +281,10 @@ tag 由 Release 步骤创建（发布时间也是这一步），所以某次构�
 │   ├── QuickJumpSettings.cs      # 扩展设置（JsonSettingsManager）
 │   ├── WindowActivation.cs          # 把外部程序窗口切到前台（最小化+还原）
 │   ├── FallbackItem.cs              # 根搜索回退项的共用骨架（两模块各用其一半）
+│   ├── QueryGate.cs                 # 搜索门槛规则（纯函数，三页与回退项共用）
+│   ├── RowCache.cs                  # 列表页的行缓存：按快照与开关复用已建好的行
+│   ├── SourceFingerprint.cs         # 数据源文件的 mtime 指纹（含 SQLite 的 -wal）
+│   ├── IconCache.cs                 # 图标实例缓存：同一路径只造一个 IconInfo
 │   ├── VSCode/                      # VSCode 模块的全部代码
 │   │   ├── VSCodeInstall.cs         # VSCode 装在哪：位置探测（标准/便携/Scoop）
 │   │   ├── VSCodeHistory.cs   # 读取最近记录：枚举数据源、去重排序、缓存
@@ -319,8 +323,9 @@ tag 由 Release 步骤创建（发布时间也是这一步），所以某次构�
 dotnet test tests\QuickJump.Tests\QuickJump.Tests.csproj -p:Platform=x64
 ```
 
-覆盖 URI 解析、JSON 解析、过滤、排序与分组 —— 这些都不碰文件系统，所以不需要装 VSCode 或
-安装扩展。文件系统相关的部分（位置探测、读库）仍只能手动验证。
+覆盖 URI 解析、JSON 解析、过滤、排序、分组、行缓存与源文件指纹 —— 不需要装 VSCode 或
+安装扩展。指纹测试只用临时目录里的假文件，不碰真实的 VSCode 数据。文件系统相关的其余部分
+（位置探测、读库）仍只能手动验证。
 
 CI（`.github/workflows/build.yml`）会在两个平台上各跑一遍：`x64` 用 `windows-latest`，
 `ARM64` 用 `windows-11-arm`。ARM64 **必须**跑在 arm64 宿主上 —— 测试程序集按

@@ -39,8 +39,18 @@ internal sealed class VSCodeHistory
 
     /// <summary>
     /// 读结果快照。整体替换，不做原地修改，读侧无锁取一次引用即可。
+    ///
+    /// <para><paramref name="Fingerprint"/> 是读这份数据时的源文件戳 (见
+    /// <see cref="SourceFingerprint"/>). TTL 到期后重读时先比它: 一样就只续期
+    /// <paramref name="At"/>, <paramref name="Items"/> 保持同一个列表 -- 页面的行缓存
+    /// 以它为键, 于是用户打字过程中不会因为一次"什么都没变"的重读而整体重建.</para>
     /// </summary>
-    internal sealed record Snapshot(IReadOnlyList<VSCodeItem> Items, bool Succeeded, string? Failure, DateTime At);
+    internal sealed record Snapshot(
+        IReadOnlyList<VSCodeItem> Items,
+        bool Succeeded,
+        string? Failure,
+        DateTime At,
+        string Fingerprint);
 
     private volatile Snapshot? _snapshot;
 
@@ -60,13 +70,31 @@ internal sealed class VSCodeHistory
                 return (cached.Items, cached.Succeeded, cached.Failure);
             }
 
-            var reads = LoadAll();
+            // 源文件一个都没动过: 只续期, 不重读.
+            //
+            // 判定只看 Succeeded, 不看 Failure. SourceRead.Combine 是"有一个来源读成功就算
+            // 成功", 同时仍带着拼接的失败信息 -- 若还要求 Failure 为 null, 只要有一个
+            // *.vscdb 长期读不了, 就会每 TTL 全量重读并换掉 Items, 行缓存跟着作废,
+            // 正是本次要消除的周期性卡顿.
+            //
+            // 整份读失败 (Succeeded 为 false) 不续期: 那可能只是一时锁库, 要给它每 TTL
+            // 重试的机会, 不能把一次失败永久固化.
+            var sources = Sources();
+            var fingerprint = GetFingerprint(sources);
+            if (_snapshot is { Succeeded: true } previous && previous.Fingerprint == fingerprint)
+            {
+                var renewed = previous with { At = DateTime.UtcNow };
+                _snapshot = renewed;
+                return (renewed.Items, renewed.Succeeded, renewed.Failure);
+            }
+
+            var reads = sources.Select(source => source.Read()).ToList();
             var merged = SourceRead.Combine(reads);
 
             // 排序要按来源分别做 —— 每个来源的 Order 各自从 0 开始，见 SortAndDedupe
             var items = SortAndDedupe(reads);
 
-            var snapshot = new Snapshot(items, merged.Succeeded, merged.Failure, DateTime.UtcNow);
+            var snapshot = new Snapshot(items, merged.Succeeded, merged.Failure, DateTime.UtcNow, fingerprint);
             _snapshot = snapshot;
             return (snapshot.Items, snapshot.Succeeded, snapshot.Failure);
         }
@@ -172,14 +200,18 @@ internal sealed class VSCodeHistory
     /// <summary>
     /// 每个位置各起一个来源：目录内的 *.vscdb 逐个一条，storage.json 一条。
     /// 返回空说明一个来源都没有 —— 调用方据此显示诊断信息。
+    ///
+    /// <para>一次物化完成: 指纹与读取必须针对同一份来源列表, 分两次枚举既慢又可能不一致.</para>
     /// </summary>
-    private IEnumerable<IVSCodeHistorySource> Sources()
+    private IReadOnlyList<IVSCodeHistorySource> Sources()
     {
+        var sources = new List<IVSCodeHistorySource>();
+
         foreach (var dbPath in _install.SharedStoragePaths())
         {
             if (File.Exists(dbPath))
             {
-                yield return new SharedStorageRecordSource(dbPath);
+                sources.Add(new SharedStorageRecordSource(dbPath));
             }
         }
 
@@ -203,18 +235,36 @@ internal sealed class VSCodeHistory
 
             foreach (var file in files)
             {
-                yield return new GlobalStorageDatabaseSource(file);
+                sources.Add(new GlobalStorageDatabaseSource(file));
             }
 
             var storageJson = Path.Combine(dir, "storage.json");
             if (File.Exists(storageJson))
             {
-                yield return new StorageJsonSource(storageJson);
+                sources.Add(new StorageJsonSource(storageJson));
             }
         }
+
+        return sources;
     }
 
-    private IReadOnlyList<SourceRead> LoadAll() => [.. Sources().Select(source => source.Read())];
+    /// <summary>
+    /// 源文件的指纹: 每个来源的路径与文件戳(<see cref="SourceFingerprint.Of"/>), 排序后拼成一个串.
+    ///
+    /// <para><b>为什么不需要再看目录.</b>来源列表本身就是每次现枚举的
+    /// (<c>Directory.GetFiles(*.vscdb, AllDirectories)</c>), 新出现的库会多出一个来源、
+    /// 消失的会少一个 -- 拼出来的指纹自然变. 目录 mtime 反而会被无关文件误触发.</para>
+    ///
+    /// <para>排序是为了稳定: 同一批来源换个枚举顺序, 指纹不该跟着变.</para>
+    ///
+    /// <para>省下的是开 SQLite 库、解析 JSON、排序去重 -- 目录枚举照做, 但比读内容便宜.</para>
+    /// </summary>
+    private static string GetFingerprint(IReadOnlyList<IVSCodeHistorySource> sources) =>
+        string.Join(
+            '|',
+            sources
+                .Select(source => SourceFingerprint.Of(source.SourcePath))
+                .OrderBy(part => part, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>
     /// 按来源优先级拼接、来源内按最近顺序排，再按路径去重。

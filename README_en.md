@@ -126,9 +126,9 @@ In the Command Palette extension settings you can configure:
   to list sessions only. Folder names are always searchable either way; this only controls whether
   a folder also gets its own row.
 - **Minimum search length** (2 by default) — a shorter query does not filter. The list then shows
-  every entry. Its first row states the required length. Set it to 1 to filter on one character,
-  in the list pages and in the root-search fallback. A single character matches almost everything,
-  so the default of 2 keeps the list stable on every keystroke.
+  every entry. Set it to 1 to filter on one character, in the list pages and in the
+  root-search fallback. A single character matches almost everything, so the default of 2 keeps
+  the list stable on every keystroke.
 
 Settings live in `%LOCALAPPDATA%\QuickJump\settings.json`.
 
@@ -319,6 +319,10 @@ certificate (EV needs a hardware token, which does not fit pure CI).
 │   ├── QuickJumpSettings.cs      # Extension settings (JsonSettingsManager)
 │   ├── WindowActivation.cs          # Bring an external app's window to the foreground
 │   ├── FallbackItem.cs              # Shared skeleton for the root-search fallback items
+│   ├── QueryGate.cs                 # Search threshold rules (pure functions, shared by all pages)
+│   ├── RowCache.cs                  # Row cache: reuse built rows for one snapshot and variant
+│   ├── SourceFingerprint.cs         # Source mtime fingerprint (includes the SQLite -wal file)
+│   ├── IconCache.cs                 # One IconInfo per package icon path
 │   ├── VSCode/                      # All code for the VSCode module
 │   │   ├── VSCodeInstall.cs         # Where VSCode lives: location probes (standard / portable / Scoop)
 │   │   ├── VSCodeHistory.cs   # VSCode history reader: sources, dedupe, sort, cache

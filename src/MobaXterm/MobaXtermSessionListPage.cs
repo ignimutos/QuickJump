@@ -15,6 +15,15 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
     private readonly QuickJumpSettings _settings;
     private readonly MobaXtermSessions _sessions;
 
+    /// <summary>
+    /// 按快照复用 session 行, 见 <see cref="RowCache{T}"/>.
+    ///
+    /// <para><b>目录行不进缓存.</b>每个目录行里嵌着一个 <see cref="MobaXtermFolderPage"/>
+    /// 实例; 若整行跨按键复用, 用户第二次进同一个目录时, 那个页面还带着上一次的
+    /// <c>SearchText</c>. 目录行本身只有几条, 每次重建的成本可以忽略.</para>
+    /// </summary>
+    private readonly RowCache<IListItem> _sessionRows = new();
+
     public MobaXtermSessionListPage(QuickJumpSettings settings, MobaXtermSessions sessions)
     {
         _settings = settings;
@@ -65,48 +74,57 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
     public override IListItem[] GetItems()
     {
         var query = SearchText?.Trim();
-        var minQueryLength = _settings.MinQueryLengthValue;
-        var tooShort = QueryGate.IsTooShort(query, minQueryLength);
+        var tooShort = QueryGate.IsTooShort(query, _settings.MinQueryLengthValue);
 
-        // 覆盖路径可能刚被改过：与快照记录的不一致时，这份快照就不作数。
         var overridePath = IniOverride;
         var snapshot = _sessions.TryGetCached();
 
-        if (snapshot is null || snapshot.IniOverride != overridePath)
+        if (snapshot is null)
         {
-            // 冷态 / 覆盖变了：唤起一次后台刷新。单飞守卫会拒掉重复调用。
+            // 冷态: 唤起一次后台刷新. 单飞守卫会拒掉重复调用.
             _sessions.RefreshInBackground(overridePath, OnReadCompleted);
-
-            // 只有从未读过 (冷) 才给占位; 覆盖刚变但已有旧快照时, 先拿旧数据顶着.
-            if (snapshot is null)
-            {
-                return [LoadingItem()];
-            }
-
-            // 旧数据的浏览视图同样带提示行, 否则改 ini 路径的瞬间提示会消失.
-            var stale = BuildItems(snapshot.Items, query, tooShort, out var staleCount);
-            if (tooShort)
-            {
-                stale.Insert(0, TooShortHint(query ?? string.Empty, minQueryLength, staleCount));
-            }
-
-            return [.. stale];
+            return [LoadingItem()];
         }
 
-        if (_sessions.IsStale)
+        // 覆盖路径可能刚被改过: 与快照记录不一致时, 这份快照就不作数.
+        var current = snapshot.IniOverride == overridePath;
+
+        // 覆盖变了或 TTL 到期: 后台补一次新数据, 先把旧快照给用户看.
+        if (!current || _sessions.IsStale)
         {
             _sessions.RefreshInBackground(overridePath, OnReadCompleted);
         }
 
         var all = snapshot.Items;
+
         if (all.Count == 0)
         {
+            // 覆盖路径刚改过: 旧快照是空的, 说明新路径还没读. 给加载占位, 别报"没有匹配"
+            // 也别报诊断 -- 两者都会让用户以为新路径里没有 session.
+            if (!current)
+            {
+                return [LoadingItem()];
+            }
+
             return [DiagnosticItem(snapshot.Succeeded, snapshot.Failure)];
         }
 
-        // 太短时 matched 就是全部 session, 所以为空只可能是查询词没命中.
-        var items = BuildItems(all, query, tooShort, out var sessionCount);
-        if (items.Count == 0)
+        return Present(all, query, tooShort);
+    }
+
+    /// <summary>
+    /// 命中结果 → 行. 按快照复用: 空查询与短查询的有效查询词都是 null, 共用同一份.
+    ///
+    /// <para>有查询词且一条都没命中时不建缓存项, 无匹配文案每次现算.</para>
+    /// </summary>
+    private IListItem[] Present(IReadOnlyList<MobaXtermSession> all, string? query, bool tooShort)
+    {
+        var effective = tooShort ? null : query;
+        var key = effective ?? string.Empty;
+
+        // 搜索本身只是几趟子串比较, 目录行的条数也靠它, 所以每次都算.
+        var matched = MobaXtermSessions.Search(all, effective);
+        if (matched.Count == 0)
         {
             return
             [
@@ -119,41 +137,27 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
             ];
         }
 
-        // 查询短于门槛时列表是浏览视图, 首行补一条提示解释 "为什么敲了字没筛".
-        if (tooShort)
+        // 只读一次设置: 两次读之间翻转会让目录行与 session 行不同步.
+        var showFolders = _settings.MobaXtermShowFolders.Value;
+
+        // 缓存里是共享实例, 发布后一律不改. session 行与「显示目录」无关, 故 variant 为空.
+        if (!_sessionRows.TryGet(all, string.Empty, key, out var cached))
         {
-            items.Insert(0, TooShortHint(query ?? string.Empty, minQueryLength, sessionCount));
+            cached = matched.Select(s => MobaXtermSessionRow.Create(s, _settings)).ToArray();
+            _sessionRows.Put(all, string.Empty, key, cached);
         }
 
-        return [.. items];
-    }
-
-    /// <summary>目录行在前, 随后是筛选后的 session 行.</summary>
-    /// <param name="query">已 Trim 的查询词.</param>
-    /// <param name="tooShort">为真时按浏览视图处理, 忽略 <paramref name="query"/>.</param>
-    /// <param name="sessionCount">实际列出的 session 条数, 不含目录行 -- 提示行用它计数.</param>
-    private List<IListItem> BuildItems(
-        IReadOnlyList<MobaXtermSession> all,
-        string? query,
-        bool tooShort,
-        out int sessionCount)
-    {
-        // 太短按浏览视图处理: 传 null 让 Search / FolderRows 走 "无查询" 分支.
-        var effective = tooShort ? null : query;
-        var matched = MobaXtermSessions.Search(all, effective);
-
-        var items = new List<IListItem>();
-        if (_settings.MobaXtermShowFolders.Value)
+        if (!showFolders)
         {
-            foreach (var name in MobaXtermSessions.FolderRows(matched, effective))
-            {
-                items.Add(FolderItem(name, matched.Count(s => s.Folder == name)));
-            }
+            return cached;
         }
 
-        items.AddRange(matched.Select(s => MobaXtermSessionRow.Create(s, _settings)));
-        sessionCount = matched.Count;
-        return items;
+        return
+        [
+            .. MobaXtermSessions.FolderRows(matched, effective)
+                .Select(name => FolderItem(name, matched.Count(s => s.Folder == name))),
+            .. cached,
+        ];
     }
 
     /// <summary>
@@ -166,15 +170,7 @@ internal sealed partial class MobaXtermSessionListPage : DynamicListPage
         {
             Title = folder,
             Subtitle = $"目录 · {count} 个会话",
-            Icon = IconHelpers.FromRelativePath(MobaXtermIcons.Folder),
-        };
-
-    private ListItem TooShortHint(string query, int minQueryLength, int total) =>
-        new(new NoOpCommand())
-        {
-            Title = QueryGateHint.Title(query, minQueryLength),
-            Subtitle = QueryGateHint.Subtitle(total, "条 session"),
-            Icon = new IconInfo(""), // SearchAndApps / 放大镜
+            Icon = IconCache.From(MobaXtermIcons.Folder),
         };
 
     /// <summary>后台首次读取还没完成时的占位项。</summary>

@@ -24,13 +24,26 @@ internal sealed class MobaXtermSessions
     private readonly MobaXtermInstall _install;
     private readonly object _gate = new();
 
-    /// <summary>快照里记下当时用的覆盖路径：覆盖变了就作废缓存，不必等 TTL。</summary>
+    /// <summary>一次加载的结果. <c>Load</c> 与"找不到 ini"两条路径共用.</summary>
+    private readonly record struct LoadResult(
+        IReadOnlyList<MobaXtermSession> Items,
+        bool Succeeded,
+        string? Failure);
+
+    /// <summary>
+    /// 快照里记下当时用的覆盖路径: 覆盖变了就作废缓存, 不必等 TTL.
+    ///
+    /// <para><paramref name="Fingerprint"/> 是 ini 的源文件戳 (见 <see cref="SourceFingerprint"/>).
+    /// TTL 到期后重读时先比它: 一样就只续期 <paramref name="At"/>, <paramref name="Items"/>
+    /// 保持同一个列表 -- 页面的行缓存以它为键, 打字过程中不会因为一次空转重读而整体重建.</para>
+    /// </summary>
     internal sealed record Snapshot(
         IReadOnlyList<MobaXtermSession> Items,
         bool Succeeded,
         string? Failure,
         string? IniOverride,
-        DateTime At);
+        DateTime At,
+        string Fingerprint);
 
     private volatile Snapshot? _snapshot;
 
@@ -52,8 +65,28 @@ internal sealed class MobaXtermSessions
                 return cached;
             }
 
-            var (items, succeeded, failure) = Load(iniOverride);
-            var snapshot = new Snapshot(items, succeeded, failure, iniOverride, DateTime.UtcNow);
+            // 候选路径每次都重新找 (几笔 File.Exists), 所以 ini 后来出现或消失都能察觉.
+            var iniPath = ResolveIniPath(iniOverride, out var pathFailure);
+            var fingerprint = iniPath is null ? string.Empty : SourceFingerprint.Of(iniPath);
+
+            // ini 一个字节都没动过: 只续期, 不重解析. 读失败的不走这条 -- 可能只是文件
+            // 一时被占用, 要给它每 TTL 重试的机会.
+            if (iniPath is not null &&
+                _snapshot is { Succeeded: true } previous &&
+                previous.IniOverride == iniOverride &&
+                previous.Fingerprint == fingerprint)
+            {
+                var renewed = previous with { At = DateTime.UtcNow };
+                _snapshot = renewed;
+                return renewed;
+            }
+
+            var result = iniPath is null
+                ? new LoadResult([], false, pathFailure)
+                : Load(iniPath);
+
+            var snapshot = new Snapshot(
+                result.Items, result.Succeeded, result.Failure, iniOverride, DateTime.UtcNow, fingerprint);
             _snapshot = snapshot;
             return snapshot;
         }
@@ -94,36 +127,37 @@ internal sealed class MobaXtermSessions
         });
     }
 
-    private (IReadOnlyList<MobaXtermSession> Items, bool Succeeded, string? Failure) Load(string? iniOverride)
+    /// <summary>第一个存在的 ini 路径; 找不到时给出失败原因.</summary>
+    private string? ResolveIniPath(string? iniOverride, out string? failure)
     {
-        string? iniPath;
         try
         {
-            iniPath = _install.IniPath(iniOverride);
+            var path = _install.IniPath(iniOverride);
+            failure = path is null ? "未找到 MobaXterm.ini" : null;
+            return path;
         }
         catch (Exception ex)
         {
-            return ([], false, ex.Message);
+            failure = ex.Message;
+            return null;
         }
+    }
 
-        if (iniPath is null)
-        {
-            return ([], false, "未找到 MobaXterm.ini");
-        }
-
+    private static LoadResult Load(string iniPath)
+    {
         try
         {
             var parsed = MobaXtermIni.ParseBookmarks(File.ReadAllText(iniPath), out var error);
             if (parsed is null)
             {
-                return ([], false, error ?? "解析失败");
+                return new LoadResult([], false, error ?? "解析失败");
             }
 
-            return ([.. parsed.OrderBy(s => s.Order)], true, null);
+            return new LoadResult([.. parsed.OrderBy(s => s.Order)], true, null);
         }
         catch (Exception ex)
         {
-            return ([], false, ex.Message);
+            return new LoadResult([], false, ex.Message);
         }
     }
 

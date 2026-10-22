@@ -15,6 +15,6 @@ internal static class MobaXtermSessionRow
         {
             Title = session.Name,
             Subtitle = session.Subtitle,
-            Icon = IconHelpers.FromRelativePath(session.Protocol.IconPath()),
+            Icon = IconCache.From(session.Protocol.IconPath()),
         };
 }
